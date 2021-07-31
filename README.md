@@ -85,6 +85,8 @@ container:=di.New()
 
 手动注册一个bean对象，并根据类型自动确定beanName
 
+- 注：手动注册的bean，不会触发依赖出入
+
 #### 参数
 
 |  参数名   | 说明  |
@@ -109,6 +111,8 @@ func main() {
 ### RegisterNamedBean
 
 手动注册一个bean对象，并指定其beanName
+
+- 注：手动注册的bean，不会触发依赖出入
 
 #### 参数
 
@@ -248,6 +252,39 @@ type (
 	}
 )
 ```
+
+## 接口
+
+`DI`提供了以下接口，便于在依赖注入过程中处理部分特殊逻辑。
+
+### BeanConstruct
+
+`BeanConstruct()`在目标bean对象创建时触发。
+
+- 此时仅反射创建对象，并未开始注入依赖属性。
+
+### PreInitialize
+
+`PreInitialize()`在目标bean对象开始注入依赖时触发。
+
+- 此时`DI`中的bean实例仅创建完成，但并未全部完成依赖注入。
+- 其依赖的对象的依赖并不一定完成了注入。
+- 此方法执行后，随即进行该bean的依赖注入。
+
+### AfterPropertiesSet
+
+`AfterPropertiesSet()`在目标bean对象完成注入依赖时触发。
+
+- 此时`DI`中的bean实例仅创建完成，但并未全部完成依赖注入。
+- 其依赖的对象的依赖并不一定完成了注入。
+- 此方法之后，才可以通过`GetBean(当前beanName)`方法拿到当前bean
+
+### Initialized
+
+`Initialized()`在bean依赖注入完成后执行，可以理解为`DI`加载完成的通知事件。
+
+- 此时`DI`中的bean均已完成依赖注入。
+- 该接口用于bean依赖注入后，完成一些后置操作。
 
 ## 其他
 
