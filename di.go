@@ -15,19 +15,23 @@ type (
 		unsafe            bool
 	}
 
+	// BeanConstruct Bean实例创建时
 	BeanConstruct interface {
-		// BeanConstruct Bean实例创建
 		BeanConstruct()
 	}
 
-	InitializeBean interface {
-		// InitializeBean Bean实例依赖注入
-		InitializeBean()
+	// PreInitialize Bean实例依赖注入前
+	PreInitialize interface {
+		PreInitialize()
 	}
 
+	// AfterPropertiesSet Bean实例注入完成
 	AfterPropertiesSet interface {
-		// AfterPropertiesSet Bean实例初始化完成
 		AfterPropertiesSet()
+	}
+
+	Initialized interface {
+		Initialized()
 	}
 )
 
@@ -115,7 +119,7 @@ func (di *DI) Load() {
 	}
 	di.initializeBean()
 	di.aware()
-	di.afterPropertiesSet()
+	di.initialized()
 }
 
 // initializeBean 初始化bean对象
@@ -137,17 +141,17 @@ func (di *DI) initializeBean() {
 func (di *DI) aware() {
 	for beanName, prototype := range di.prototypeMap {
 		// 注入前方法
-		if initialize, ok := prototype.(InitializeBean); ok {
-			initialize.InitializeBean()
+		if initialize, ok := prototype.(PreInitialize); ok {
+			initialize.PreInitialize()
 		}
 		def := di.beanDefinitionMap[beanName]
 		bean := reflect.ValueOf(prototype).Elem()
 		for filedName, awareInfo := range def.awareMap {
 			var awareBean interface{}
 			var ok bool
-			if awareBean, ok = di.prototypeMap[awareInfo.beanName]; !ok {
-				// 原型定义里找不到，尝试查找手动注册的bean
-				if awareBean, ok = di.beanMap[awareInfo.beanName]; !ok {
+			if awareBean, ok = di.beanMap[awareInfo.beanName]; !ok {
+				// 手动注册的bean中找不到，尝试查找原型定义
+				if awareBean, ok = di.prototypeMap[awareInfo.beanName]; !ok {
 					panic(errors.WithMessagef(ErrBean, "bean %s notfound for %s(%s.%s)",
 						awareInfo.beanName,
 						beanName,
@@ -179,16 +183,20 @@ func (di *DI) aware() {
 				bean.FieldByName(filedName).Set(value)
 			}
 		}
-	}
-}
-
-func (di *DI) afterPropertiesSet() {
-	for beanName, prototype := range di.prototypeMap {
 		// 注入后方法
 		if propertiesSet, ok := prototype.(AfterPropertiesSet); ok {
 			propertiesSet.AfterPropertiesSet()
 		}
 		// 加载为bean
 		di.beanMap[beanName] = prototype
+	}
+}
+
+func (di *DI) initialized() {
+	for _, prototype := range di.prototypeMap {
+		// 初始化完成
+		if propertiesSet, ok := prototype.(Initialized); ok {
+			propertiesSet.Initialized()
+		}
 	}
 }

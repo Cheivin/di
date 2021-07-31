@@ -26,7 +26,7 @@ type (
 	}
 )
 
-func (u UserService) InitializeBean() {
+func (u UserService) PreInitialize() {
 	fmt.Println("依赖注入", "UserService")
 }
 
