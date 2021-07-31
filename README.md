@@ -2,6 +2,28 @@
 
 `di`是一个简易版本的Go依赖注入实现
 
+- [di](#di)
+    * [安装](#--)
+    * [快速使用](#----)
+    * [函数](#--)
+        + [New](#new)
+        + [RegisterBean](#registerbean)
+        + [RegisterNamedBean](#registernamedbean)
+        + [Provide](#provide)
+        + [ProvideWithBeanName](#providewithbeanname)
+        + [GetBean](#getbean)
+    * [标签](#--)
+    * [接口](#--)
+        + [BeanConstruct](#beanconstruct)
+        + [PreInitialize](#preinitialize)
+        + [AfterPropertiesSet](#afterpropertiesset)
+        + [Initialized](#initialized)
+    * [其他](#--)
+        + [UnsafeMode不安全模式](#unsafemode-----)
+        + [beanName生成策略](#beanname----)
+
+---
+
 ## 安装
 
 ```
