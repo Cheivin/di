@@ -153,7 +153,7 @@ func (di *DI) aware() {
 			if awareBean, ok = di.beanMap[awareInfo.beanName]; !ok {
 				// 手动注册的bean中找不到，尝试查找原型定义
 				if awareBean, ok = di.prototypeMap[awareInfo.beanName]; !ok {
-					panic(fmt.Errorf("%w: bean %s notfound for %s(%s.%s)",
+					panic(fmt.Errorf("%w: %s notfound for %s(%s.%s)",
 						ErrBean,
 						awareInfo.beanName,
 						beanName,
@@ -164,20 +164,32 @@ func (di *DI) aware() {
 			}
 			// 注入
 			value := reflect.ValueOf(awareBean)
-			if !awareInfo.isPtr {
-				value = value.Elem()
-			}
 			// 类型检查
-			if value.Type().String() != awareInfo.beanType.String() {
-				panic(fmt.Errorf("%w: bean %s(%s) not match for %s(%s.%s) need type %s",
-					ErrBean,
-					awareInfo.beanName, value.Type().String(),
-					beanName,
-					def.Type.String(),
-					filedName,
-					awareInfo.beanType.String(),
-				))
+			if awareInfo.isPtr { // 指针类型
+				if !value.Type().AssignableTo(awareInfo.beanType) {
+					panic(fmt.Errorf("%w: %s(%s) not match for %s(%s.%s) need type %s",
+						ErrBean,
+						awareInfo.beanName, value.Type().String(),
+						beanName,
+						def.Type.String(),
+						filedName,
+						awareInfo.beanType.String(),
+					))
+				}
+			} else { // 接口类型
+				if !value.Type().Implements(awareInfo.beanType) {
+					panic(fmt.Errorf("%w: %s(%s) not implements interface %s for %s(%s.%s)",
+						ErrBean,
+						awareInfo.beanName, value.Type().String(),
+						awareInfo.beanType.String(),
+						beanName,
+						def.Type.String(),
+						filedName,
+					))
+				}
 			}
+
+			// 设置值
 			if di.unsafe {
 				field := bean.FieldByName(filedName)
 				field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()

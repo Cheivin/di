@@ -47,21 +47,35 @@ type (
 	}
 
 	UserDao struct {
-		Db        DB `aware:"db"`
+		Db        *DB `aware:"db"`
 		TableName string
 	}
 
 	WalletDao struct {
-		Db DB `aware:"db"`
+		Db        *DB `aware:"db"`
+		TableName string
+	}
+
+	OrderRepository interface {
+		TableName() string
+	}
+
+	OrderDao struct {
+		Db *DB `aware:"db"`
 	}
 
 	UserService struct {
-		UerDao *UserDao `aware:"user"`
-		Wallet *WalletDao
+		UserDao  *UserDao        `aware:"user"`
+		Wallet   *WalletDao      `aware:""`
+		OrderDao OrderRepository `aware:"orderDao"`
 	}
 )
 
-func (u UserService) InitializeBean() {
+func (o *OrderDao) TableName() string {
+	return o.Db.Prefix + "order"
+}
+
+func (u UserService) PreInitialize() {
 	fmt.Println("依赖注入", "UserService")
 }
 
@@ -70,23 +84,40 @@ func (u *UserDao) AfterPropertiesSet() {
 	u.TableName = "user"
 }
 
-func (w WalletDao) BeanConstruct() {
-	fmt.Println("构造对象", "WalletDao")
+func (w *WalletDao) Initialized() {
+	fmt.Println("加载完成", "WalletDao")
+	w.TableName = "wallet"
+}
+
+func (o *OrderDao) BeanConstruct() {
+	fmt.Println("构造实例", "OrderDao")
 }
 
 func (u *UserService) GetUserTable() string {
-	return u.UerDao.Db.Prefix + u.UerDao.TableName
+	return u.UserDao.Db.Prefix + u.UserDao.TableName
+}
+
+func (u *UserService) GetWalletTable() string {
+	return u.Wallet.Db.Prefix + u.Wallet.TableName
+}
+
+func (u *UserService) GetOrderTable() string {
+	return u.OrderDao.TableName()
 }
 
 func main() {
 	di.RegisterNamedBean("db", &DB{Prefix: "test_"}).
-		Provide(WalletDao{}).
 		ProvideWithBeanName("user", UserDao{}).
+		Provide(WalletDao{}).
+		Provide(OrderDao{}).
 		Provide(UserService{}).
 		Load()
 
-	if bean, ok := di.GetBean("userService"); ok {
+	bean, ok := di.GetBean("userService")
+	if ok {
 		log.Println(bean.(*UserService).GetUserTable())
+		log.Println(bean.(*UserService).GetWalletTable())
+		log.Println(bean.(*UserService).GetOrderTable())
 	}
 }
 ```
@@ -257,22 +288,40 @@ func main() {
 `DI`使用`aware`作为标记依赖注入的Tag
 
 - Tag的完整格式为 `aware:"beanName"`
-- Tag标记的属性，可以为`结构`和`结构指针`，但不支持`基本数据类型`和`接口`、`方法`
+- Tag标记可以为`结构体指针`或`接口`，但不支持`基本数据类型`和`结构体`、`方法`
 - 『**不推荐**』如果Tag不传入任何值，即`aware:""`，则会根据字段结构名称自动生成beanName
 
 ```go
 package main
 
+import "github.com/cheivin/di"
+
 type (
-	AService struct{}
-	BService struct{}
-	CService struct{}
+	AService          struct{}
+	BService          struct{}
+	CServiceInterface interface {
+		Method()
+	}
+	CService struct {
+	}
 	BeanType struct {
-		A *AService `aware:"aService"` // 单例
-		B *BService `aware:""`         // 单例
-		C BService  `aware:"aService"` // 多例
+		A *AService          `aware:"aService"` // 指定beanName为aService
+		B *BService          `aware:""`         // 自动生成beanName为bService
+		C *CServiceInterface `aware:"c"`        // 注入CService
 	}
 )
+
+func (*CService) Method() {
+
+}
+
+func main() {
+	di.ProvideWithBeanName("c", CService{}).
+		Provide(AService{}).
+		Provide(BService{}).
+		Provide(BeanType{}).
+		Load()
+}
 ```
 
 ## 接口
@@ -327,7 +376,7 @@ type (
 	Dao struct {
 	}
 	AService struct {
-		dao Dao `aware`
+		dao *Dao `aware:"dao"`
 	}
 )
 

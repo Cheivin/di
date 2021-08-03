@@ -31,18 +31,32 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 			continue
 		}
 		switch field.Type.Kind() {
-		case reflect.Struct, reflect.Ptr:
+		case reflect.Ptr, reflect.Interface, reflect.Struct:
 			if awareName, ok := field.Tag.Lookup("aware"); ok {
 				// 取类型名称为注入的beanName
 				if awareName == "" {
 					awareName = GetBeanName(field.Type)
-					fmt.Println("awareName", awareName)
 				}
-				// 注册aware信息
-				awareMap[field.Name] = aware{
-					beanName: awareName,
-					beanType: field.Type,
-					isPtr:    field.Type.Kind() == reflect.Ptr,
+				switch field.Type.Kind() {
+				case reflect.Ptr:
+					if reflect.Interface == field.Type.Elem().Kind() {
+						panic(fmt.Errorf("%w: aware bean not accept interface pointer for %s.%s", ErrDefinition, prototype.String(), field.Name))
+					}
+					// 注册aware信息
+					awareMap[field.Name] = aware{
+						beanName: awareName,
+						beanType: field.Type,
+						isPtr:    true,
+					}
+				case reflect.Interface:
+					// 注册aware信息
+					awareMap[field.Name] = aware{
+						beanName: awareName,
+						beanType: field.Type,
+						isPtr:    false,
+					}
+				case reflect.Struct:
+					panic(fmt.Errorf("%w: aware bean not accept struct for %s.%s", ErrDefinition, prototype.String(), field.Name))
 				}
 			}
 		default:
