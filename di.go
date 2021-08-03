@@ -1,7 +1,8 @@
 package di
 
 import (
-	"github.com/pkg/errors"
+	"errors"
+	"fmt"
 	"reflect"
 	"unsafe"
 )
@@ -65,13 +66,13 @@ func (di *DI) RegisterNamedBean(beanName string, bean interface{}) *DI {
 		panic(ErrLoaded)
 	}
 	if !IsPtr(bean) {
-		panic(errors.WithMessage(ErrBean, "bean must be a pointer"))
+		panic(fmt.Errorf("%w: bean must be a pointer", ErrBean))
 	}
 	if beanName == "" {
 		beanName = GetBeanName(bean)
 	}
 	if _, exist := di.beanMap[beanName]; exist {
-		panic(errors.WithMessagef(ErrBean, "bean %s already exists", beanName))
+		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
 	}
 	di.beanMap[beanName] = bean
 	return di
@@ -97,13 +98,13 @@ func (di *DI) ProvideWithBeanName(beanName string, beanType interface{}) *DI {
 	}
 	// 检查beanDefinition重复
 	if existDefinition, exist := di.beanDefinitionMap[beanName]; exist {
-		panic(errors.WithMessagef(ErrDefinition, "bean %s already defined by %s", beanName, existDefinition.Type.String()))
+		panic(fmt.Errorf("%w: bean %s already defined by %s", ErrDefinition, beanName, existDefinition.Type.String()))
 	} else {
 		di.beanDefinitionMap[beanName] = newDefinition(beanName, prototype)
 	}
 	// 检查bean重复
 	if _, exist := di.beanMap[beanName]; exist {
-		panic(errors.WithMessagef(ErrBean, "bean %s already exists", beanName))
+		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
 	}
 	return di
 }
@@ -152,7 +153,8 @@ func (di *DI) aware() {
 			if awareBean, ok = di.beanMap[awareInfo.beanName]; !ok {
 				// 手动注册的bean中找不到，尝试查找原型定义
 				if awareBean, ok = di.prototypeMap[awareInfo.beanName]; !ok {
-					panic(errors.WithMessagef(ErrBean, "bean %s notfound for %s(%s.%s)",
+					panic(fmt.Errorf("%w: bean %s notfound for %s(%s.%s)",
+						ErrBean,
 						awareInfo.beanName,
 						beanName,
 						def.Type.String(),
@@ -167,7 +169,8 @@ func (di *DI) aware() {
 			}
 			// 类型检查
 			if value.Type().String() != awareInfo.beanType.String() {
-				panic(errors.WithMessagef(ErrBean, "bean %s(%s) not match for %s(%s.%s) need type %s",
+				panic(fmt.Errorf("%w: bean %s(%s) not match for %s(%s.%s) need type %s",
+					ErrBean,
 					awareInfo.beanName, value.Type().String(),
 					beanName,
 					def.Type.String(),

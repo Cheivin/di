@@ -258,7 +258,7 @@ func main() {
 
 - Tag的完整格式为 `aware:"beanName"`
 - Tag标记的属性，可以为`结构`和`结构指针`，但不支持`基本数据类型`和`接口`、`方法`
-- 『**不推荐**』如果Tag不传入任何值，即`aware:""`或`aware`，则会根据字段结构名称自动生成beanName
+- 『**不推荐**』如果Tag不传入任何值，即`aware:""`，则会根据字段结构名称自动生成beanName
 
 ```go
 package main
@@ -268,9 +268,9 @@ type (
 	BService struct{}
 	CService struct{}
 	BeanType struct {
-		A AService  `aware:"aService"`
-		B *BService `aware:""`
-		C *BService `aware`
+		A *AService `aware:"aService"` // 单例
+		B *BService `aware:""`         // 单例
+		C BService  `aware:"aService"` // 多例
 	}
 )
 ```
