@@ -3,6 +3,7 @@ package di
 import (
 	"errors"
 	"fmt"
+	"github.com/cheivin/di/van"
 	"reflect"
 	"unsafe"
 )
@@ -14,6 +15,7 @@ type (
 		beanMap           map[string]interface{} // beanName:bean实例
 		loaded            bool
 		unsafe            bool
+		valueStore        ValueStore
 	}
 
 	// BeanConstruct Bean实例创建时
@@ -47,6 +49,7 @@ func New() *DI {
 		beanDefinitionMap: map[string]definition{},
 		prototypeMap:      map[string]interface{}{},
 		beanMap:           map[string]interface{}{},
+		valueStore:        van.New(),
 	}
 }
 
@@ -112,6 +115,14 @@ func (di *DI) ProvideWithBeanName(beanName string, beanType interface{}) *DI {
 func (di *DI) GetBean(beanName string) (interface{}, bool) {
 	bean, ok := di.beanMap[beanName]
 	return bean, ok
+}
+
+func (di *DI) UseValueStore(v ValueStore) {
+	di.valueStore = v
+}
+
+func (di *DI) Property() ValueStore {
+	return di.valueStore
 }
 
 func (di *DI) Load() {

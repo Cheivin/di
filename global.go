@@ -1,6 +1,10 @@
 package di
 
-var g = New()
+var g *DI
+
+func init() {
+	g = New()
+}
 
 func RegisterBean(bean interface{}) *DI {
 	return g.RegisterBean(bean)
