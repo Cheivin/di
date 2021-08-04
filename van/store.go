@@ -104,7 +104,15 @@ func (s *store) Set(key string, value interface{}) {
 	lastKey := keyPath[len(keyPath)-1]
 	tree := deepSearchIfAbsent(s.tree, keyPath[0:len(keyPath)-1])
 
-	tree[lastKey] = value
+	if sub, ok := tree[lastKey]; !ok {
+		tree[lastKey] = value
+	} else {
+		if isMap(sub) && isMap(value) {
+			mergeStringMap(value.(map[string]interface{}), sub.(map[string]interface{}))
+		} else {
+			tree[lastKey] = value
+		}
+	}
 }
 
 func (s *store) Get(key string) interface{} {
