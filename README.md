@@ -12,12 +12,17 @@
         + [Provide](#provide)
         + [ProvideWithBeanName](#providewithbeanname)
         + [GetBean](#getbean)
+        + [Property](#Property)
+        + [UseValueStore](#ValueStore)
     * [标签](#标签)
     * [接口](#接口)
         + [BeanConstruct](#beanconstruct)
         + [PreInitialize](#preinitialize)
         + [AfterPropertiesSet](#afterpropertiesset)
         + [Initialized](#initialized)
+    * [配置项管理器](#配置项管理器)
+        + [接口方法](#接口方法)
+        + [内置管理器van](#内置管理器van)
     * [其他](#其他)
         + [UnsafeMode不安全模式](#unsafemode不安全模式)
         + [beanName生成策略](#beanname生成策略)
@@ -283,6 +288,14 @@ func main() {
 }
 ```
 
+### Property
+
+返回配置项管理器，具体查看[配置项管理器](#配置项管理器)
+
+### UseValueStore
+
+设置配置项管理器，该管理器需实现`ValueStore`接口，具体查看[配置项管理器](#配置项管理器)
+
 ## 标签
 
 `DI`使用`aware`作为标记依赖注入的Tag
@@ -356,6 +369,59 @@ func main() {
 
 - 此时`DI`中的bean均已完成依赖注入。
 - 该接口用于bean依赖注入后，完成一些后置操作。
+
+## 配置项管理器
+
+配置项管理器用于对`key-value`形式配置项进行管理。一个配置项管理器需实现`ValueStore`接口：
+
+### 接口方法
+
+- `SetDefault(key string, value interface{})` 设置默认配置值
+
+- `Set(key string, value interface{})` 设置配置值
+
+- `Get(key string) (val interface{})` 获取配置值
+
+- `GetAll() map[string]interface{}` 获取所有配置
+
+### 内置管理器van
+
+`DI`提供了`van`作为默认的配置管理器。
+
+- 可以独立使用，通过`van.New()`得到实例
+- 支持设置形如`xxx.xxx.xxx`格式的配置
+- 支持以`map[string]interface{}`方式设置多层级的配置项
+
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/cheivin/di/van"
+)
+
+func main() {
+	store := van.New()
+	store.SetDefault("a.b.c", "abc")
+	store.SetDefault("a.b.d", "d")
+	store.Set("a.b.c", "override")
+	store.Set("a.b.e", "e")
+	store.Set("a.b", map[string]interface{}{
+		"x": 1,
+		"y": 2,
+		"z": map[string]interface{}{
+			"n": 3,
+		},
+	})
+	store.Set("a.b.z.m", 4)
+
+	fmt.Println(store.Get("a.b.c"))   // override
+	fmt.Println(store.Get("a.b.d"))   // d
+	fmt.Println(store.Get("a.b.e"))   // e
+	fmt.Println(store.Get("a.b.x"))   // 1
+	fmt.Println(store.Get("a.b.z.n")) // 3
+}
+```
 
 ## 其他
 
