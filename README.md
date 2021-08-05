@@ -15,6 +15,8 @@
         + [Property](#Property)
         + [UseValueStore](#ValueStore)
     * [标签](#标签)
+        + [aware](#aware)
+        + [value](#value)
     * [接口](#接口)
         + [BeanConstruct](#beanconstruct)
         + [PreInitialize](#preinitialize)
@@ -52,8 +54,11 @@ type (
 	}
 
 	UserDao struct {
-		Db        *DB `aware:"db"`
-		TableName string
+		Db          *DB `aware:"db"`
+		TableName   string
+		DefaultAge  int    `value:"base.user.age"`
+		DefaultName string `value:"base.user.name"`
+		DefaultType uint8  `value:"base.user.type"`
 	}
 
 	WalletDao struct {
@@ -102,6 +107,14 @@ func (u *UserService) GetUserTable() string {
 	return u.UserDao.Db.Prefix + u.UserDao.TableName
 }
 
+func (u *UserService) GetUserDefault() map[string]interface{} {
+	return map[string]interface{}{
+		"age":  u.UserDao.DefaultAge,
+		"name": u.UserDao.DefaultName,
+		"type": u.UserDao.DefaultType,
+	}
+}
+
 func (u *UserService) GetWalletTable() string {
 	return u.Wallet.Db.Prefix + u.Wallet.TableName
 }
@@ -116,6 +129,10 @@ func main() {
 		Provide(WalletDao{}).
 		Provide(OrderDao{}).
 		Provide(UserService{}).
+		SetDefaultProperty("base.user.name", "新用户").
+		SetProperty("base.user.age", 25).
+		SetProperty("base.user.name", "新注册用户").
+		SetProperty("base.user.type", "8").
 		Load()
 
 	bean, ok := di.GetBean("userService")
@@ -123,6 +140,7 @@ func main() {
 		log.Println(bean.(*UserService).GetUserTable())
 		log.Println(bean.(*UserService).GetWalletTable())
 		log.Println(bean.(*UserService).GetOrderTable())
+		log.Println(bean.(*UserService).GetUserDefault())
 	}
 }
 ```
@@ -298,6 +316,8 @@ func main() {
 
 ## 标签
 
+### aware
+
 `DI`使用`aware`作为标记依赖注入的Tag
 
 - Tag的完整格式为 `aware:"beanName"`
@@ -333,6 +353,51 @@ func main() {
 		Provide(AService{}).
 		Provide(BService{}).
 		Provide(BeanType{}).
+		Load()
+}
+```
+
+### value
+
+`DI`使用`value`作为标记配置项注入的Tag
+
+- Tag的完整格式为 `value:"property"`
+- Tag标记可以为以下`基本数据类型`：
+    - `string`
+    - `bool`
+    - `int`
+    - `int64`
+    - `int32`
+    - `int16`
+    - `int8`
+    - `uint`
+    - `uint64`
+    - `uint32`
+    - `uint16`
+    - `uint8`
+    - `float64`
+    - `float32`
+
+```go
+package main
+
+import "github.com/cheivin/di"
+
+type (
+	BeanType struct {
+		A string  `value:"a"`         // a
+		B int     `value:"prop.b"`    // 1
+		C float64 `value:"propMap.c"` // 1.0
+	}
+)
+
+func main() {
+	di.Provide(BeanType{}).
+		SetProperty("a", "a").
+		SetProperty("prop.b", 1).
+		SetProperty("propMap", map[string]interface{}{
+			"c": 1.0,
+		}).
 		Load()
 }
 ```
@@ -442,13 +507,15 @@ type (
 	Dao struct {
 	}
 	AService struct {
-		dao *Dao `aware:"dao"`
+		dao  *Dao   `aware:"dao"`
+		name string `value:"name"`
 	}
 )
 
 func main() {
 	di.Provide(Dao{}).
 		Provide(AService{}).
+		SetProperty("name", "name").
 		UnsafeMode(true). // 不安全模式
 		Load()
 }

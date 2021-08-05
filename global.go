@@ -43,6 +43,10 @@ func SetProperty(key string, value interface{}) *DI {
 	return g.SetProperty(key, value)
 }
 
+func SetPropertyMap(properties map[string]interface{}) *DI {
+	return g.SetPropertyMap(properties)
+}
+
 func Load() {
 	if g.loaded {
 		return

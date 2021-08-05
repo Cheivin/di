@@ -136,6 +136,13 @@ func (di *DI) SetProperty(key string, value interface{}) *DI {
 	return di
 }
 
+func (di *DI) SetPropertyMap(properties map[string]interface{}) *DI {
+	for key, value := range properties {
+		di.valueStore.Set(key, value)
+	}
+	return di
+}
+
 func (di *DI) Load() {
 	if di.loaded {
 		panic(ErrLoaded)
