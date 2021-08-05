@@ -26,6 +26,23 @@ func GetBean(beanName string) (bean interface{}, ok bool) {
 	return g.GetBean(beanName)
 }
 
+func UseValueStore(v ValueStore) *DI {
+	g.UseValueStore(v)
+	return g
+}
+
+func Property() ValueStore {
+	return g.Property()
+}
+
+func SetDefaultProperty(key string, value interface{}) *DI {
+	return g.SetDefaultProperty(key, value)
+}
+
+func SetProperty(key string, value interface{}) *DI {
+	return g.SetProperty(key, value)
+}
+
 func Load() {
 	if g.loaded {
 		return

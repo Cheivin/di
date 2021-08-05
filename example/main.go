@@ -12,8 +12,11 @@ type (
 	}
 
 	UserDao struct {
-		Db        *DB `aware:"db"`
-		TableName string
+		Db          *DB `aware:"db"`
+		TableName   string
+		DefaultAge  int    `value:"base.user.age"`
+		DefaultName string `value:"base.user.name"`
+		DefaultType uint8  `value:"base.user.type"`
 	}
 
 	WalletDao struct {
@@ -62,6 +65,14 @@ func (u *UserService) GetUserTable() string {
 	return u.UserDao.Db.Prefix + u.UserDao.TableName
 }
 
+func (u *UserService) GetUserDefault() map[string]interface{} {
+	return map[string]interface{}{
+		"age":  u.UserDao.DefaultAge,
+		"name": u.UserDao.DefaultName,
+		"type": u.UserDao.DefaultType,
+	}
+}
+
 func (u *UserService) GetWalletTable() string {
 	return u.Wallet.Db.Prefix + u.Wallet.TableName
 }
@@ -76,6 +87,10 @@ func main() {
 		Provide(WalletDao{}).
 		Provide(OrderDao{}).
 		Provide(UserService{}).
+		SetDefaultProperty("base.user.name", "新用户").
+		SetProperty("base.user.age", 25).
+		SetProperty("base.user.name", "新注册用户").
+		SetProperty("base.user.type", "8").
 		Load()
 
 	bean, ok := di.GetBean("userService")
@@ -83,5 +98,6 @@ func main() {
 		log.Println(bean.(*UserService).GetUserTable())
 		log.Println(bean.(*UserService).GetWalletTable())
 		log.Println(bean.(*UserService).GetOrderTable())
+		log.Println(bean.(*UserService).GetUserDefault())
 	}
 }

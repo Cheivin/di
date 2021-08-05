@@ -54,3 +54,93 @@ func toString(v interface{}) string {
 		return ""
 	}
 }
+
+func Cast(v interface{}, typ reflect.Type) (to interface{}, err error) {
+	v = indirect(v)
+	if typ.Kind() == reflect.String {
+		return toString(v), nil
+	}
+	value := reflect.ValueOf(v)
+	if value.Type().ConvertibleTo(typ) {
+		return value.Convert(typ).Interface(), nil
+	}
+	s := toString(v)
+	switch typ.Kind() {
+	case reflect.Bool:
+		to, err = strconv.ParseBool(s)
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Float64:
+		to, err = strconv.ParseFloat(s, 64)
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Float32:
+		to, err = strconv.ParseFloat(s, 32)
+		if err != nil {
+			return nil, err
+		}
+		to = float32(to.(float64))
+	case reflect.Int:
+		to, err = strconv.ParseInt(s, 10, 0)
+		if err != nil {
+			return nil, err
+		}
+		to = int(to.(int64))
+	case reflect.Int64:
+		to, err = strconv.ParseInt(s, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Int32:
+		to, err = strconv.ParseInt(s, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		to = int32(to.(int64))
+	case reflect.Int16:
+		to, err = strconv.ParseInt(s, 10, 16)
+		if err != nil {
+			return nil, err
+		}
+		to = int16(to.(int64))
+	case reflect.Int8:
+		to, err = strconv.ParseInt(s, 10, 8)
+		if err != nil {
+			return nil, err
+		}
+		to = int8(to.(int64))
+	case reflect.Uint:
+		to, err = strconv.ParseUint(s, 10, 0)
+		if err != nil {
+			return nil, err
+		}
+		to = uint(to.(uint64))
+	case reflect.Uint64:
+		to, err = strconv.ParseUint(s, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+	case reflect.Uint32:
+		to, err = strconv.ParseUint(s, 10, 32)
+		if err != nil {
+			return nil, err
+		}
+		to = uint32(to.(uint64))
+	case reflect.Uint16:
+		to, err = strconv.ParseUint(s, 10, 16)
+		if err != nil {
+			return nil, err
+		}
+		to = uint16(to.(uint64))
+	case reflect.Uint8:
+		to, err = strconv.ParseUint(s, 10, 8)
+		if err != nil {
+			return nil, err
+		}
+		to = uint8(to.(uint64))
+	default:
+	}
+	return
+}
