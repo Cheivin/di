@@ -1,4 +1,6 @@
 # di
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FCheivin%2Fdi.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2FCheivin%2Fdi?ref=badge_shield)
+
 
 `di`是一个简易版本的Go依赖注入实现
 
@@ -463,3 +465,6 @@ eg:
 - `AService` => `aService`
 - `DB` => `dB`
 - `api` => `api`
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2FCheivin%2Fdi.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2FCheivin%2Fdi?ref=badge_large)
