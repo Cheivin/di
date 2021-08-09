@@ -1,5 +1,9 @@
 package di
 
+import (
+	"context"
+)
+
 var g *DI
 
 func init() {
@@ -48,8 +52,13 @@ func SetPropertyMap(properties map[string]interface{}) *DI {
 }
 
 func Load() {
-	if g.loaded {
-		return
-	}
 	g.Load()
+}
+
+func Serve(ctx context.Context) {
+	g.Serve(ctx)
+}
+
+func LoadAndServ(ctx context.Context) {
+	g.LoadAndServ(ctx)
 }

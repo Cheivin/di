@@ -1,6 +1,7 @@
 package di
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"github.com/cheivin/di/van"
@@ -33,8 +34,14 @@ type (
 		AfterPropertiesSet()
 	}
 
+	// Initialized 在Bean依赖注入完成后执行，可以理解为DI加载完成的通知事件。
 	Initialized interface {
 		Initialized()
+	}
+
+	// Disposable 在Bean注销时调用
+	Disposable interface {
+		Destroy()
 	}
 )
 
@@ -144,12 +151,16 @@ func (di *DI) SetPropertyMap(properties map[string]interface{}) *DI {
 }
 
 func (di *DI) Load() {
+
 	if di.loaded {
 		panic(ErrLoaded)
 	}
+
+	di.loaded = true
 	di.initializeBeans()
 	di.processBeans()
 	di.initialized()
+
 }
 
 // initializeBeans 初始化bean对象
@@ -283,4 +294,32 @@ func (di *DI) initialized() {
 			propertiesSet.Initialized()
 		}
 	}
+}
+
+func (di *DI) destroyBean(beanName string) {
+	if bean, ok := di.beanMap[beanName]; ok {
+		if disposable, ok := bean.(Disposable); ok {
+			disposable.Destroy()
+		}
+		delete(di.beanMap, beanName)
+	}
+}
+
+func (di *DI) destroyBeans() {
+	for beanName := range di.beanMap {
+		di.destroyBean(beanName)
+	}
+}
+
+func (di *DI) Serve(ctx context.Context) {
+	if !di.loaded {
+		panic(ErrLoaded)
+	}
+	<-ctx.Done()
+	di.destroyBeans()
+}
+
+func (di *DI) LoadAndServ(ctx context.Context) {
+	di.Load()
+	di.Serve(ctx)
 }

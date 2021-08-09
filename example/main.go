@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/cheivin/di"
 	"log"
+	"os/signal"
+	"syscall"
 )
 
 type (
@@ -81,6 +84,10 @@ func (u *UserService) GetOrderTable() string {
 	return u.OrderDao.TableName()
 }
 
+func (u *UserService) Destroy() {
+	fmt.Println("注销实例", "UserService")
+}
+
 func main() {
 	di.RegisterNamedBean("db", &DB{Prefix: "test_"}).
 		ProvideWithBeanName("user", UserDao{}).
@@ -100,4 +107,9 @@ func main() {
 		log.Println(bean.(*UserService).GetOrderTable())
 		log.Println(bean.(*UserService).GetUserDefault())
 	}
+	// 退出信号
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	di.Serve(ctx)
+	fmt.Println("容器退出")
 }
