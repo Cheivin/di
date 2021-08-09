@@ -14,6 +14,8 @@
         + [GetBean](#getbean)
         + [Property](#Property)
         + [UseValueStore](#ValueStore)
+        + [Serve](#Serve)
+        + [LoadAndServe](#LoadAndServe)
     * [标签](#标签)
         + [aware](#aware)
         + [value](#value)
@@ -22,6 +24,7 @@
         + [PreInitialize](#preinitialize)
         + [AfterPropertiesSet](#afterpropertiesset)
         + [Initialized](#initialized)
+        + [Disposable](#disposable)
     * [配置项管理器](#配置项管理器)
         + [接口方法](#接口方法)
         + [内置管理器van](#内置管理器van)
@@ -314,6 +317,41 @@ func main() {
 
 设置配置项管理器，该管理器需实现`ValueStore`接口，具体查看[配置项管理器](#配置项管理器)
 
+### Serve
+
+在`Load()`方法后使用。用于监听context的退出。
+
+如下，可实现程序优雅退出
+
+```go
+package main
+
+import (
+	"context"
+	"fmt"
+	"github.com/cheivin/di"
+	"os/signal"
+	"syscall"
+)
+
+type AService struct {
+	Name string
+}
+
+func main() {
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	di.Load()
+	fmt.Println("容器加载完成")
+	di.Serve(ctx)
+	fmt.Println("程序退出")
+}
+```
+
+### LoadAndServe
+
+`Load()`和`Serve()`的合并命令。
+
 ## 标签
 
 ### aware
@@ -434,6 +472,12 @@ func main() {
 
 - 此时`DI`中的bean均已完成依赖注入。
 - 该接口用于bean依赖注入后，完成一些后置操作。
+
+### Disposable
+
+`Destroy()`在bean注销时执行。
+
+- 当`DI`退出时，所有bean都会触发该方法。
 
 ## 配置项管理器
 
