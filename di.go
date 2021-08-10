@@ -169,6 +169,8 @@ func (di *DI) initializeBeans() {
 	for beanName, def := range di.beanDefinitionMap {
 		prototype := reflect.New(def.Type).Interface()
 		di.prototypeMap[beanName] = prototype
+		// 注入值
+		di.wireValue(beanName, reflect.ValueOf(prototype).Elem(), def)
 	}
 	// 遍历触发BeanConstruct方法
 	for _, prototype := range di.prototypeMap {
@@ -194,7 +196,6 @@ func (di *DI) processBean(beanName string, prototype interface{}, def definition
 	}
 	bean := reflect.ValueOf(prototype).Elem()
 	di.wireBean(beanName, bean, def)
-	di.wireValue(beanName, bean, def)
 	// 注入后方法
 	if propertiesSet, ok := prototype.(AfterPropertiesSet); ok {
 		propertiesSet.AfterPropertiesSet()
