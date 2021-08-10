@@ -72,9 +72,6 @@ func (di *DI) RegisterBean(bean interface{}) *DI {
 
 // RegisterNamedBean 以指定名称注册一个bean
 func (di *DI) RegisterNamedBean(beanName string, bean interface{}) *DI {
-	if di.loaded {
-		panic(ErrLoaded)
-	}
 	if !IsPtr(bean) {
 		panic(fmt.Errorf("%w: bean must be a pointer", ErrBean))
 	}
