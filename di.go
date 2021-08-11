@@ -1,6 +1,7 @@
 package di
 
 import (
+	"container/list"
 	"context"
 	"errors"
 	"fmt"
@@ -17,6 +18,7 @@ type (
 		loaded            bool
 		unsafe            bool
 		valueStore        ValueStore
+		beanSort          *list.List
 	}
 
 	// BeanConstruct Bean实例创建时
@@ -57,6 +59,7 @@ func New() *DI {
 		prototypeMap:      map[string]interface{}{},
 		beanMap:           map[string]interface{}{},
 		valueStore:        van.New(),
+		beanSort:          list.New(),
 	}
 }
 
@@ -82,6 +85,8 @@ func (di *DI) RegisterNamedBean(beanName string, bean interface{}) *DI {
 		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
 	}
 	di.beanMap[beanName] = bean
+	// 加入队列
+	di.beanSort.PushBack(beanName)
 	return di
 }
 
@@ -103,15 +108,17 @@ func (di *DI) ProvideWithBeanName(beanName string, beanType interface{}) *DI {
 	} else {
 		prototype = reflect.TypeOf(beanType)
 	}
+	// 检查bean重复
+	if _, exist := di.beanMap[beanName]; exist {
+		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
+	}
 	// 检查beanDefinition重复
 	if existDefinition, exist := di.beanDefinitionMap[beanName]; exist {
 		panic(fmt.Errorf("%w: bean %s already defined by %s", ErrDefinition, beanName, existDefinition.Type.String()))
 	} else {
 		di.beanDefinitionMap[beanName] = newDefinition(beanName, prototype)
-	}
-	// 检查bean重复
-	if _, exist := di.beanMap[beanName]; exist {
-		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
+		// 加入队列
+		di.beanSort.PushBack(beanName)
 	}
 	return di
 }
@@ -148,7 +155,6 @@ func (di *DI) SetPropertyMap(properties map[string]interface{}) *DI {
 }
 
 func (di *DI) Load() {
-
 	if di.loaded {
 		panic(ErrLoaded)
 	}
@@ -170,18 +176,35 @@ func (di *DI) initializeBeans() {
 		di.wireValue(beanName, reflect.ValueOf(prototype).Elem(), def)
 	}
 	// 遍历触发BeanConstruct方法
-	for _, prototype := range di.prototypeMap {
-		if construct, ok := prototype.(BeanConstruct); ok {
-			construct.BeanConstruct()
+	//for _, prototype := range di.prototypeMap {
+	//	if construct, ok := prototype.(BeanConstruct); ok {
+	//		construct.BeanConstruct()
+	//	}
+	//}
+
+	// 根据排序遍历触发BeanConstruct方法
+	for e := di.beanSort.Front(); e != nil; e = e.Next() {
+		beanName := e.Value.(string)
+		if prototype, ok := di.prototypeMap[beanName]; ok {
+			if construct, ok := prototype.(BeanConstruct); ok {
+				construct.BeanConstruct()
+			}
 		}
 	}
 }
 
 // processBeans 注入依赖
 func (di *DI) processBeans() {
-	for beanName, prototype := range di.prototypeMap {
-		def := di.beanDefinitionMap[beanName]
-		di.processBean(beanName, prototype, def)
+	//for beanName, prototype := range di.prototypeMap {
+	//	def := di.beanDefinitionMap[beanName]
+	//	di.processBean(beanName, prototype, def)
+	//}
+	for e := di.beanSort.Front(); e != nil; e = e.Next() {
+		beanName := e.Value.(string)
+		if prototype, ok := di.prototypeMap[beanName]; ok {
+			def := di.beanDefinitionMap[beanName]
+			di.processBean(beanName, prototype, def)
+		}
 	}
 }
 
@@ -286,10 +309,18 @@ func (di *DI) wireValue(beanName string, bean reflect.Value, def definition) {
 }
 
 func (di *DI) initialized() {
-	for _, prototype := range di.prototypeMap {
+	//for _, prototype := range di.prototypeMap {
+	//	// 初始化完成
+	//	if propertiesSet, ok := prototype.(Initialized); ok {
+	//		propertiesSet.Initialized()
+	//	}
+	//}
+	for e := di.beanSort.Front(); e != nil; e = e.Next() {
+		beanName := e.Value.(string)
+		bean := di.beanMap[beanName]
 		// 初始化完成
-		if propertiesSet, ok := prototype.(Initialized); ok {
-			propertiesSet.Initialized()
+		if initialized, ok := bean.(Initialized); ok {
+			initialized.Initialized()
 		}
 	}
 }
@@ -304,8 +335,12 @@ func (di *DI) destroyBean(beanName string) {
 }
 
 func (di *DI) destroyBeans() {
-	for beanName := range di.beanMap {
-		di.destroyBean(beanName)
+	//for beanName := range di.beanMap {
+	//	di.destroyBean(beanName)
+	//}
+	// 倒序销毁bean
+	for e := di.beanSort.Back(); e != nil; e = e.Prev() {
+		di.destroyBean(e.Value.(string))
 	}
 }
 
