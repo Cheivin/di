@@ -14,16 +14,28 @@ func newStore(separator string) *store {
 	return &store{separator: separator, tree: make(map[string]interface{})}
 }
 
-func toCaseInsensitiveMap(value interface{}) map[string]interface{} {
+func toCaseInsensitiveMap(value interface{}, separator string) map[string]interface{} {
 	m := make(map[string]interface{})
 
 	iter := reflect.ValueOf(value).MapRange()
 	for iter.Next() {
 		key := strings.ToLower(toString(iter.Key()))
-		if isMap(iter.Value()) {
-			m[key] = toCaseInsensitiveMap(iter.Value().Interface())
+		val := iter.Value()
+		keyPath := strings.Split(key, separator)
+		if len(keyPath) > 1 {
+			tmpV := deepSearchIfAbsent(m, keyPath[0:len(keyPath)-1])
+			lastKey := keyPath[len(keyPath)-1]
+			if isMap(val) {
+				tmpV[lastKey] = toCaseInsensitiveMap(val.Interface(), separator)
+			} else {
+				tmpV[lastKey] = val.Interface()
+			}
 		} else {
-			m[key] = iter.Value().Interface()
+			if isMap(val) {
+				m[key] = toCaseInsensitiveMap(val.Interface(), separator)
+			} else {
+				m[key] = val.Interface()
+			}
 		}
 	}
 
@@ -98,7 +110,7 @@ func deepSearch(v interface{}, path []string) interface{} {
 func (s *store) Set(key string, value interface{}) {
 	key = strings.ToLower(key)
 	if isMap(value) {
-		value = toCaseInsensitiveMap(value)
+		value = toCaseInsensitiveMap(value, s.separator)
 	}
 	keyPath := strings.Split(key, s.separator)
 	lastKey := keyPath[len(keyPath)-1]
