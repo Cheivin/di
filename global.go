@@ -43,6 +43,10 @@ func SetDefaultProperty(key string, value interface{}) *DI {
 	return g.SetDefaultProperty(key, value)
 }
 
+func SetDefaultPropertyMap(properties map[string]interface{}) *DI {
+	return g.SetDefaultPropertyMap(properties)
+}
+
 func SetProperty(key string, value interface{}) *DI {
 	return g.SetProperty(key, value)
 }
