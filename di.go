@@ -26,6 +26,11 @@ type (
 		BeanConstruct()
 	}
 
+	// BeanName 返回beanName
+	BeanName interface {
+		BeanName() string
+	}
+
 	// PreInitialize Bean实例依赖注入前
 	PreInitialize interface {
 		PreInitialize()
@@ -99,15 +104,24 @@ func (di *DI) ProvideWithBeanName(beanName string, beanType interface{}) *DI {
 	if di.loaded {
 		panic(ErrLoaded)
 	}
-	if beanName == "" {
-		beanName = GetBeanName(beanType)
-	}
 	var prototype reflect.Type
 	if IsPtr(beanType) {
 		prototype = reflect.TypeOf(beanType).Elem()
 	} else {
 		prototype = reflect.TypeOf(beanType)
 	}
+	if beanName == "" {
+		if tmpBeanName, ok := (reflect.New(prototype).Interface()).(BeanName); ok {
+			if name := tmpBeanName.BeanName(); name != "" {
+				beanName = name
+			} else {
+				beanName = GetBeanName(beanType)
+			}
+		} else {
+			beanName = GetBeanName(beanType)
+		}
+	}
+	fmt.Println("注册bean", beanName, prototype)
 	// 检查bean重复
 	if _, exist := di.beanMap[beanName]; exist {
 		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))

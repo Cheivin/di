@@ -35,15 +35,24 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 		switch field.Type.Kind() {
 		case reflect.Ptr, reflect.Interface, reflect.Struct:
 			if awareName, ok := field.Tag.Lookup("aware"); ok {
-				// 取类型名称为注入的beanName
-				if awareName == "" {
-					awareName = GetBeanName(field.Type)
-				}
 				switch field.Type.Kind() {
 				case reflect.Ptr:
 					if reflect.Interface == field.Type.Elem().Kind() {
 						panic(fmt.Errorf("%w: aware bean not accept interface pointer for %s.%s", ErrDefinition, prototype.String(), field.Name))
 					}
+					if awareName == "" {
+						// 取接口返回值为注入的beanName
+						if tmpBeanName, ok := (reflect.New(field.Type.Elem()).Interface()).(BeanName); ok {
+							if name := tmpBeanName.BeanName(); name != "" {
+								awareName = name
+							}
+						}
+						if awareName == "" {
+							// 取类型名称为注入的beanName
+							awareName = GetBeanName(field.Type)
+						}
+					}
+
 					// 注册aware信息
 					awareMap[field.Name] = aware{
 						Name:  awareName,
@@ -51,6 +60,10 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 						isPtr: true,
 					}
 				case reflect.Interface:
+					// 取类型名称为注入的beanName
+					if awareName == "" {
+						awareName = GetBeanName(field.Type)
+					}
 					// 注册aware信息
 					awareMap[field.Name] = aware{
 						Name:  awareName,

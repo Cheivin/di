@@ -36,9 +36,9 @@ type (
 	}
 
 	UserService struct {
-		UserDao  *UserDao        `aware:"user"`
+		UserDao  *UserDao        `aware:""`
 		Wallet   *WalletDao      `aware:""`
-		OrderDao OrderRepository `aware:"orderDao"`
+		OrderDao OrderRepository `aware:"order"`
 	}
 )
 
@@ -48,6 +48,10 @@ func (o *OrderDao) TableName() string {
 
 func (u UserService) PreInitialize() {
 	fmt.Println("依赖注入", "UserService")
+}
+
+func (u *UserDao) BeanName() string {
+	return "user"
 }
 
 func (u *UserDao) AfterPropertiesSet() {
@@ -62,6 +66,10 @@ func (w *WalletDao) Initialized() {
 
 func (o *OrderDao) BeanConstruct() {
 	fmt.Println("构造实例", "OrderDao")
+}
+
+func (u *OrderDao) BeanName() string {
+	return "order"
 }
 
 func (u *UserService) GetUserTable() string {
