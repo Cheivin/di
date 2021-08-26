@@ -142,39 +142,6 @@ func (di *DI) GetBean(beanName string) (interface{}, bool) {
 	return bean, ok
 }
 
-func (di *DI) UseValueStore(v ValueStore) *DI {
-	di.valueStore = v
-	return di
-}
-
-func (di *DI) Property() ValueStore {
-	return di.valueStore
-}
-
-func (di *DI) SetDefaultProperty(key string, value interface{}) *DI {
-	di.valueStore.SetDefault(key, value)
-	return di
-}
-
-func (di *DI) SetDefaultPropertyMap(properties map[string]interface{}) *DI {
-	for key, value := range properties {
-		di.valueStore.SetDefault(key, value)
-	}
-	return di
-}
-
-func (di *DI) SetProperty(key string, value interface{}) *DI {
-	di.valueStore.Set(key, value)
-	return di
-}
-
-func (di *DI) SetPropertyMap(properties map[string]interface{}) *DI {
-	for key, value := range properties {
-		di.valueStore.Set(key, value)
-	}
-	return di
-}
-
 func (di *DI) Load() {
 	if di.loaded {
 		panic(ErrLoaded)
@@ -196,13 +163,6 @@ func (di *DI) initializeBeans() {
 		// 注入值
 		di.wireValue(beanName, reflect.ValueOf(prototype).Elem(), def)
 	}
-	// 遍历触发BeanConstruct方法
-	//for _, prototype := range di.prototypeMap {
-	//	if construct, ok := prototype.(BeanConstruct); ok {
-	//		construct.BeanConstruct()
-	//	}
-	//}
-
 	// 根据排序遍历触发BeanConstruct方法
 	for e := di.beanSort.Front(); e != nil; e = e.Next() {
 		beanName := e.Value.(string)
@@ -216,10 +176,6 @@ func (di *DI) initializeBeans() {
 
 // processBeans 注入依赖
 func (di *DI) processBeans() {
-	//for beanName, prototype := range di.prototypeMap {
-	//	def := di.beanDefinitionMap[beanName]
-	//	di.processBean(beanName, prototype, def)
-	//}
 	for e := di.beanSort.Front(); e != nil; e = e.Next() {
 		beanName := e.Value.(string)
 		if prototype, ok := di.prototypeMap[beanName]; ok {
@@ -330,12 +286,6 @@ func (di *DI) wireValue(beanName string, bean reflect.Value, def definition) {
 }
 
 func (di *DI) initialized() {
-	//for _, prototype := range di.prototypeMap {
-	//	// 初始化完成
-	//	if propertiesSet, ok := prototype.(Initialized); ok {
-	//		propertiesSet.Initialized()
-	//	}
-	//}
 	for e := di.beanSort.Front(); e != nil; e = e.Next() {
 		beanName := e.Value.(string)
 		bean := di.beanMap[beanName]
@@ -356,9 +306,6 @@ func (di *DI) destroyBean(beanName string) {
 }
 
 func (di *DI) destroyBeans() {
-	//for beanName := range di.beanMap {
-	//	di.destroyBean(beanName)
-	//}
 	// 倒序销毁bean
 	for e := di.beanSort.Back(); e != nil; e = e.Prev() {
 		di.destroyBean(e.Value.(string))
