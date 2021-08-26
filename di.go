@@ -121,7 +121,6 @@ func (di *DI) ProvideWithBeanName(beanName string, beanType interface{}) *DI {
 			beanName = GetBeanName(beanType)
 		}
 	}
-	fmt.Println("注册bean", beanName, prototype)
 	// 检查bean重复
 	if _, exist := di.beanMap[beanName]; exist {
 		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
