@@ -2,6 +2,7 @@ package di
 
 import (
 	"reflect"
+	"sort"
 	"strings"
 )
 
@@ -25,4 +26,25 @@ func GetBeanName(o interface{}) (name string) {
 	// 简单粗暴将首字母小写
 	name = strings.ToLower(name[:1]) + name[1:]
 	return
+}
+
+func in(target string, array []string) bool {
+	sort.Strings(array)
+	index := sort.SearchStrings(array, target)
+	if index < len(array) && array[index] == target {
+		return true
+	}
+	return false
+}
+
+func hasPrefix(prefix string, array []string) (bool, string) {
+	if len(array) == 0 {
+		return true, ""
+	}
+	for i := range array {
+		if strings.HasPrefix(prefix, array[i]) {
+			return true, array[i]
+		}
+	}
+	return false, ""
 }
