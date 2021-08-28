@@ -28,10 +28,10 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 	valueMap := map[string]aware{}
 	for i := 0; i < prototype.NumField(); i++ {
 		field := prototype.Field(i)
-		// 忽略匿名字段
-		if field.Anonymous {
-			continue
-		}
+		//// 忽略匿名字段
+		//if field.Anonymous {
+		//	continue
+		//}
 		switch field.Type.Kind() {
 		case reflect.Ptr, reflect.Interface, reflect.Struct:
 			if awareName, ok := field.Tag.Lookup("aware"); ok {
