@@ -96,11 +96,11 @@ func (di *DI) RegisterNamedBean(beanName string, bean interface{}) *DI {
 }
 
 func (di *DI) Provide(prototype interface{}) *DI {
-	di.ProvideWithBeanName("", prototype)
+	di.ProvideNamedBean("", prototype)
 	return di
 }
 
-func (di *DI) ProvideWithBeanName(beanName string, beanType interface{}) *DI {
+func (di *DI) ProvideNamedBean(beanName string, beanType interface{}) *DI {
 	if di.loaded {
 		panic(ErrLoaded)
 	}

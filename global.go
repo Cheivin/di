@@ -24,8 +24,8 @@ func Provide(prototype interface{}) *DI {
 	return g.Provide(prototype)
 }
 
-func ProvideWithBeanName(beanName string, prototype interface{}) *DI {
-	return g.ProvideWithBeanName(beanName, prototype)
+func ProvideNamedBean(beanName string, prototype interface{}) *DI {
+	return g.ProvideNamedBean(beanName, prototype)
 }
 
 func GetBean(beanName string) (bean interface{}, ok bool) {

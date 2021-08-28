@@ -10,7 +10,7 @@
         + [RegisterBean](#registerbean)
         + [RegisterNamedBean](#registernamedbean)
         + [Provide](#provide)
-        + [ProvideWithBeanName](#providewithbeanname)
+        + [ProvideNamedBean](#ProvideNamedBean)
         + [GetBean](#getbean)
         + [Property](#Property)
         + [UseValueStore](#ValueStore)
@@ -128,7 +128,7 @@ func (u *UserService) GetOrderTable() string {
 
 func main() {
 	di.RegisterNamedBean("db", &DB{Prefix: "test_"}).
-		ProvideWithBeanName("user", UserDao{}).
+		ProvideNamedBean("user", UserDao{}).
 		Provide(WalletDao{}).
 		Provide(OrderDao{}).
 		Provide(UserService{}).
@@ -248,7 +248,7 @@ func main() {
 }
 ```
 
-### ProvideWithBeanName
+### ProvideNamedBean
 
 提供一个bean结构体对象或其指针，容器将使用指定名称根据结构体自动创建bean并注入相关依赖
 
@@ -271,8 +271,8 @@ type AService struct {
 }
 
 func main() {
-	di.ProvideWithBeanName("aService", AService{}).
-		ProvideWithBeanName("serviceA", &AService{})
+	di.ProvideNamedBean("aService", AService{}).
+		ProvideNamedBean("serviceA", &AService{})
 }
 ```
 
@@ -306,7 +306,7 @@ type AService struct {
 }
 
 func main() {
-	di.ProvideWithBeanName("aService", AService{}).
+	di.ProvideNamedBean("aService", AService{}).
 		Load()
 	aService, ok := di.GetBean("aService")
 	fmt.Println(aService, ok) // ok=true
@@ -393,7 +393,7 @@ func (*CService) Method() {
 }
 
 func main() {
-	di.ProvideWithBeanName("c", CService{}).
+	di.ProvideNamedBean("c", CService{}).
 		Provide(AService{}).
 		Provide(BService{}).
 		Provide(BeanType{}).

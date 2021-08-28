@@ -98,7 +98,7 @@ func (u *UserService) Destroy() {
 
 func main() {
 	di.RegisterNamedBean("db", &DB{Prefix: "test_"}).
-		ProvideWithBeanName("user", UserDao{}).
+		ProvideNamedBean("user", UserDao{}).
 		Provide(WalletDao{}).
 		Provide(OrderDao{}).
 		Provide(UserService{}).
