@@ -217,10 +217,48 @@ func (di *DI) wireBean(beanName string, bean reflect.Value, def definition) {
 				))
 			}
 		}
-		// 注入
 		value := reflect.ValueOf(awareBean)
+		// 匿名字段不能实现BeanConstruct/PreInitialize/AfterPropertiesSet/Initialized/Disposable等生命周期接口
+		if awareInfo.Anonymous {
+			errMsg := "%w: %s(%s) as anonymous field in %s(%s.%s) can not implements %s"
+			if _, ok := awareBean.(BeanConstruct); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"BeanConstruct",
+				))
+			}
+			if _, ok := awareBean.(PreInitialize); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"PreInitialize",
+				))
+			}
+			if _, ok := awareBean.(AfterPropertiesSet); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"AfterPropertiesSet",
+				))
+			}
+			if _, ok := awareBean.(Initialized); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"Initialized",
+				))
+			}
+			if _, ok := awareBean.(Disposable); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"Disposable",
+				))
+			}
+		}
 		// 类型检查
-		if awareInfo.isPtr { // 指针类型
+		if awareInfo.IsPtr { // 指针类型
 			if !value.Type().AssignableTo(awareInfo.Type) {
 				panic(fmt.Errorf("%w: %s(%s) not match for %s(%s.%s) need type %s",
 					ErrBean,

@@ -16,9 +16,10 @@ type (
 
 	// 需要注入的信息
 	aware struct {
-		Name  string
-		Type  reflect.Type
-		isPtr bool
+		Name      string
+		Type      reflect.Type
+		IsPtr     bool
+		Anonymous bool
 	}
 )
 
@@ -55,9 +56,10 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 
 					// 注册aware信息
 					awareMap[field.Name] = aware{
-						Name:  awareName,
-						Type:  field.Type,
-						isPtr: true,
+						Name:      awareName,
+						Type:      field.Type,
+						IsPtr:     true,
+						Anonymous: field.Anonymous,
 					}
 				case reflect.Interface:
 					// 取类型名称为注入的beanName
@@ -66,9 +68,10 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 					}
 					// 注册aware信息
 					awareMap[field.Name] = aware{
-						Name:  awareName,
-						Type:  field.Type,
-						isPtr: false,
+						Name:      awareName,
+						Type:      field.Type,
+						IsPtr:     false,
+						Anonymous: field.Anonymous,
 					}
 				case reflect.Struct:
 					panic(fmt.Errorf("%w: aware bean not accept struct for %s.%s", ErrDefinition, prototype.String(), field.Name))
