@@ -408,22 +408,26 @@ func main() {
 `DI`使用`value`作为标记配置项注入的Tag
 
 - Tag的完整格式为 `value:"property"`
-- Tag标记可以为以下`基本数据类型`：
-    - `string`
-    - `bool`
-    - `int`
-    - `int64`
-    - `int32`
-    - `int16`
-    - `int8`
-    - `uint`
-    - `uint64`
-    - `uint32`
-    - `uint16`
-    - `uint8`
-    - `float64`
-    - `float32`
-
+- Tag标记可以为类型
+  - `基本数据类型`：
+      - `string`
+      - `bool`
+      - `int`
+      - `int64`
+      - `int32`
+      - `int16`
+      - `int8`
+      - `uint`
+      - `uint64`
+      - `uint32`
+      - `uint16`
+      - `uint8`
+      - `float64`
+      - `float32`
+  - `其他类型`:
+    - `time.Duration`
+- 注：
+  - `time.Duration`,默认单位为`ms`，即`100`注入后值为`100ms`
 ```go
 package main
 

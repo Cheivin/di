@@ -7,6 +7,7 @@ import (
 	"log"
 	"os/signal"
 	"syscall"
+	"time"
 )
 
 type (
@@ -15,11 +16,13 @@ type (
 	}
 
 	UserDao struct {
-		Db          *DB `aware:"db"`
-		TableName   string
-		DefaultAge  int    `value:"base.user.age"`
-		DefaultName string `value:"base.user.name"`
-		DefaultType uint8  `value:"base.user.type"`
+		Db               *DB `aware:"db"`
+		TableName        string
+		DefaultAge       int           `value:"base.user.age"`
+		DefaultName      string        `value:"base.user.name"`
+		DefaultType      uint8         `value:"base.user.type"`
+		DefaultCacheTime time.Duration `value:"base.user.cache"`
+		DefaultExpire    time.Duration `value:"base.user.expire"`
 	}
 
 	WalletDao struct {
@@ -78,9 +81,11 @@ func (u *UserService) GetUserTable() string {
 
 func (u *UserService) GetUserDefault() map[string]interface{} {
 	return map[string]interface{}{
-		"age":  u.UserDao.DefaultAge,
-		"name": u.UserDao.DefaultName,
-		"type": u.UserDao.DefaultType,
+		"age":    u.UserDao.DefaultAge,
+		"name":   u.UserDao.DefaultName,
+		"type":   u.UserDao.DefaultType,
+		"cache":  u.UserDao.DefaultCacheTime,
+		"expire": u.UserDao.DefaultExpire,
 	}
 }
 
@@ -106,6 +111,8 @@ func main() {
 		SetProperty("base.user.age", 25).
 		SetProperty("base.user.name", "新注册用户").
 		SetProperty("base.user.type", "8").
+		SetProperty("base.user.cache", "30000").
+		SetProperty("base.user.expire", "1h").
 		Load()
 
 	bean, ok := di.GetBean("userService")

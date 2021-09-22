@@ -3,6 +3,8 @@ package van
 import (
 	"reflect"
 	"strconv"
+	"strings"
+	"time"
 )
 
 func indirect(v interface{}) interface{} {
@@ -50,10 +52,14 @@ func toString(v interface{}) string {
 		return strconv.FormatUint(uint64(s), 10)
 	case uint8:
 		return strconv.FormatUint(uint64(s), 10)
+	case time.Duration:
+		return s.String()
 	default:
 		return ""
 	}
 }
+
+var typeDuration = reflect.TypeOf(time.Nanosecond)
 
 func Cast(v interface{}, typ reflect.Type) (to interface{}, err error) {
 	v = indirect(v)
@@ -89,9 +95,20 @@ func Cast(v interface{}, typ reflect.Type) (to interface{}, err error) {
 		}
 		to = int(to.(int64))
 	case reflect.Int64:
-		to, err = strconv.ParseInt(s, 10, 64)
-		if err != nil {
-			return nil, err
+		if typ == typeDuration {
+			to, err = time.ParseDuration(s)
+			if err != nil && strings.HasPrefix(err.Error(), "time: missing unit in duration") {
+				to, err = strconv.ParseInt(s, 10, 64)
+				if err != nil {
+					return nil, err
+				}
+				to = time.Duration(to.(int64)) * time.Millisecond
+			}
+		} else {
+			to, err = strconv.ParseInt(s, 10, 64)
+			if err != nil {
+				return nil, err
+			}
 		}
 	case reflect.Int32:
 		to, err = strconv.ParseInt(s, 10, 32)
