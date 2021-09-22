@@ -32,6 +32,7 @@
     * [其他](#其他)
         + [UnsafeMode不安全模式](#unsafemode不安全模式)
         + [beanName生成策略](#beanname生成策略)
+        + [注入匿名字段](#注入匿名字段)
 
 ---
 
@@ -582,7 +583,43 @@ func main() {
 
 - 如果实现`BeanName`接口，则将把`BeanName`接口方法返回值作为beanName
 - 否则将根据结构体名称，把第一个转换字母小写得到beanName
-  - eg:
-    - `AService` => `aService`
-    - `DB` => `dB`
-    - `api` => `api`
+    - eg:
+        - `AService` => `aService`
+        - `DB` => `dB`
+        - `api` => `api`
+
+### 注入匿名字段
+
+`DI`支持匿名字段注入，但匿名字段不能实现以下接口，因其存在于注入的生命周期内，会造成重复执行
+
+- BeanConstruct
+- PreInitialize
+- AfterPropertiesSet
+- Initialized
+- Disposable
+
+```go
+package main
+
+import (
+	"github.com/cheivin/di"
+)
+
+type (
+	Dao struct {
+	}
+	AService struct {
+		*Dao `aware:""` // 匿名字段注入，根据BeanName接口指定
+	}
+)
+
+func (Dao) BeanName() string {
+	return "dao"
+}
+
+func main() {
+	di.Provide(Dao{}).
+		Provide(AService{}).
+		Load()
+}
+```
