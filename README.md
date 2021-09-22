@@ -21,6 +21,7 @@
         + [value](#value)
     * [接口](#接口)
         + [BeanConstruct](#beanconstruct)
+        + [BeanName](#beanName)
         + [PreInitialize](#preinitialize)
         + [AfterPropertiesSet](#afterpropertiesset)
         + [Initialized](#initialized)
@@ -366,7 +367,7 @@ func main() {
 
 - Tag的完整格式为 `aware:"beanName"`
 - Tag标记可以为`结构体指针`或`接口`，但不支持`基本数据类型`和`结构体`、`方法`
-- 『**不推荐**』如果Tag不传入任何值，即`aware:""`，则会根据字段结构名称自动生成beanName
+- 『**推荐**』如果Tag不传入任何值，即`aware:""`，则会根据[beanName生成策略](#beanname生成策略)得到beanName注入
 
 ```go
 package main
@@ -453,6 +454,12 @@ func main() {
 ### BeanConstruct
 
 `BeanConstruct()`在目标bean对象创建时触发。
+
+- 此时仅反射创建对象，并未开始注入依赖属性。
+
+### BeanName
+
+`BeanName()`根据该方法返回值设定beanName。。
 
 - 此时仅反射创建对象，并未开始注入依赖属性。
 
@@ -573,10 +580,9 @@ func main() {
 
 ### beanName生成策略
 
-根据结构体名称，将第一个转换字母小写得到beanName
-
-eg:
-
-- `AService` => `aService`
-- `DB` => `dB`
-- `api` => `api`
+- 如果实现`BeanName`接口，则将把`BeanName`接口方法返回值作为beanName
+- 否则将根据结构体名称，把第一个转换字母小写得到beanName
+  - eg:
+    - `AService` => `aService`
+    - `DB` => `dB`
+    - `api` => `api`
