@@ -49,8 +49,8 @@ func (o *OrderDao) TableName() string {
 	return o.Db.Prefix + "order"
 }
 
-func (u UserService) PreInitialize() {
-	fmt.Println("依赖注入", "UserService")
+func (u UserService) PreInitialize(container *di.DI) {
+	fmt.Println("依赖注入", "UserService", container.Property())
 }
 
 func (u *UserDao) BeanName() string {

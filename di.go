@@ -20,36 +20,6 @@ type (
 		valueStore        ValueStore
 		beanSort          *list.List
 	}
-
-	// BeanConstruct Bean实例创建时
-	BeanConstruct interface {
-		BeanConstruct()
-	}
-
-	// BeanName 返回beanName
-	BeanName interface {
-		BeanName() string
-	}
-
-	// PreInitialize Bean实例依赖注入前
-	PreInitialize interface {
-		PreInitialize()
-	}
-
-	// AfterPropertiesSet Bean实例注入完成
-	AfterPropertiesSet interface {
-		AfterPropertiesSet()
-	}
-
-	// Initialized 在Bean依赖注入完成后执行，可以理解为DI加载完成的通知事件。
-	Initialized interface {
-		Initialized()
-	}
-
-	// Disposable 在Bean注销时调用
-	Disposable interface {
-		Destroy()
-	}
 )
 
 var (
@@ -166,7 +136,9 @@ func (di *DI) initializeBeans() {
 	for e := di.beanSort.Front(); e != nil; e = e.Next() {
 		beanName := e.Value.(string)
 		if prototype, ok := di.prototypeMap[beanName]; ok {
-			if construct, ok := prototype.(BeanConstruct); ok {
+			if construct, ok := prototype.(BeanConstructWithContainer); ok {
+				construct.BeanConstruct(di)
+			} else if construct, ok := prototype.(BeanConstruct); ok {
 				construct.BeanConstruct()
 			}
 		}
@@ -187,13 +159,17 @@ func (di *DI) processBeans() {
 // processBean 处理bean
 func (di *DI) processBean(beanName string, prototype interface{}, def definition) {
 	// 注入前方法
-	if initialize, ok := prototype.(PreInitialize); ok {
+	if initialize, ok := prototype.(PreInitializeWithContainer); ok {
+		initialize.PreInitialize(di)
+	} else if initialize, ok := prototype.(PreInitialize); ok {
 		initialize.PreInitialize()
 	}
 	bean := reflect.ValueOf(prototype).Elem()
 	di.wireBean(beanName, bean, def)
 	// 注入后方法
-	if propertiesSet, ok := prototype.(AfterPropertiesSet); ok {
+	if propertiesSet, ok := prototype.(AfterPropertiesSetWithContainer); ok {
+		propertiesSet.AfterPropertiesSet(di)
+	} else if propertiesSet, ok := prototype.(AfterPropertiesSet); ok {
 		propertiesSet.AfterPropertiesSet()
 	}
 	// 加载为bean
@@ -227,12 +203,24 @@ func (di *DI) wireBean(beanName string, bean reflect.Value, def definition) {
 					value.Type().String(), beanName, def.Type.String(), filedName,
 					"BeanConstruct",
 				))
+			} else if _, ok := awareBean.(BeanConstructWithContainer); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"BeanConstructWithContainer",
+				))
 			}
 			if _, ok := awareBean.(PreInitialize); ok {
 				panic(fmt.Errorf(errMsg,
 					ErrBean, awareInfo.Name,
 					value.Type().String(), beanName, def.Type.String(), filedName,
 					"PreInitialize",
+				))
+			} else if _, ok := awareBean.(PreInitializeWithContainer); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"PreInitializeWithContainer",
 				))
 			}
 			if _, ok := awareBean.(AfterPropertiesSet); ok {
@@ -241,6 +229,12 @@ func (di *DI) wireBean(beanName string, bean reflect.Value, def definition) {
 					value.Type().String(), beanName, def.Type.String(), filedName,
 					"AfterPropertiesSet",
 				))
+			} else if _, ok := awareBean.(AfterPropertiesSetWithContainer); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"AfterPropertiesSetWithContainer",
+				))
 			}
 			if _, ok := awareBean.(Initialized); ok {
 				panic(fmt.Errorf(errMsg,
@@ -248,12 +242,24 @@ func (di *DI) wireBean(beanName string, bean reflect.Value, def definition) {
 					value.Type().String(), beanName, def.Type.String(), filedName,
 					"Initialized",
 				))
+			} else if _, ok := awareBean.(InitializedWithContainer); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"InitializedWithContainer",
+				))
 			}
 			if _, ok := awareBean.(Disposable); ok {
 				panic(fmt.Errorf(errMsg,
 					ErrBean, awareInfo.Name,
 					value.Type().String(), beanName, def.Type.String(), filedName,
 					"Disposable",
+				))
+			} else if _, ok := awareBean.(DisposableWithContainer); ok {
+				panic(fmt.Errorf(errMsg,
+					ErrBean, awareInfo.Name,
+					value.Type().String(), beanName, def.Type.String(), filedName,
+					"DisposableWithContainer",
 				))
 			}
 		}
@@ -327,7 +333,9 @@ func (di *DI) initialized() {
 		beanName := e.Value.(string)
 		bean := di.beanMap[beanName]
 		// 初始化完成
-		if initialized, ok := bean.(Initialized); ok {
+		if initialized, ok := bean.(InitializedWithContainer); ok {
+			initialized.Initialized(di)
+		} else if initialized, ok := bean.(Initialized); ok {
 			initialized.Initialized()
 		}
 	}
@@ -335,7 +343,9 @@ func (di *DI) initialized() {
 
 func (di *DI) destroyBean(beanName string) {
 	if bean, ok := di.beanMap[beanName]; ok {
-		if disposable, ok := bean.(Disposable); ok {
+		if disposable, ok := bean.(DisposableWithContainer); ok {
+			disposable.Destroy(di)
+		} else if disposable, ok := bean.(Disposable); ok {
 			disposable.Destroy()
 		}
 		delete(di.beanMap, beanName)
