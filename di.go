@@ -54,7 +54,16 @@ func (di *DI) RegisterNamedBean(beanName string, bean interface{}) *DI {
 		panic(fmt.Errorf("%w: bean must be a pointer", ErrBean))
 	}
 	if beanName == "" {
-		beanName = GetBeanName(bean)
+		prototype := reflect.TypeOf(bean).Elem()
+		if tmpBeanName, ok := (reflect.New(prototype).Interface()).(BeanName); ok {
+			if name := tmpBeanName.BeanName(); name != "" {
+				beanName = name
+			} else {
+				beanName = GetBeanName(bean)
+			}
+		} else {
+			beanName = GetBeanName(bean)
+		}
 	}
 	if _, exist := di.beanMap[beanName]; exist {
 		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))

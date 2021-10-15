@@ -15,8 +15,13 @@ type (
 		Prefix string
 	}
 
+	DB2 struct {
+		Prefix string
+	}
+
 	UserDao struct {
-		Db               *DB `aware:"db"`
+		Db               *DB  `aware:"db"`
+		Db2              *DB2 `aware:""`
 		TableName        string
 		DefaultAge       int           `value:"base.user.age"`
 		DefaultName      string        `value:"base.user.name"`
@@ -45,6 +50,11 @@ type (
 	}
 )
 
+func (DB2) BeanName() string {
+	fmt.Println("获取DB2名称：db2")
+	return "db2"
+}
+
 func (o *OrderDao) TableName() string {
 	return o.Db.Prefix + "order"
 }
@@ -59,6 +69,7 @@ func (u *UserDao) BeanName() string {
 
 func (u *UserDao) AfterPropertiesSet() {
 	fmt.Println("装载完成", "UserDao")
+	fmt.Println("userDao.DB2", u.Db2)
 	u.TableName = "user"
 }
 
@@ -103,6 +114,7 @@ func (u *UserService) Destroy() {
 
 func main() {
 	di.RegisterNamedBean("db", &DB{Prefix: "test_"}).
+		RegisterBean(&DB2{Prefix: "xxx_"}).
 		ProvideNamedBean("user", UserDao{}).
 		Provide(WalletDao{}).
 		Provide(OrderDao{}).
