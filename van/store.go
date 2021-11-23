@@ -62,8 +62,12 @@ func mergeStringMap(source map[string]interface{}, target map[string]interface{}
 		if !ok {
 			target[sk] = sv
 		} else {
-			if isMap(tv) && isMap(sv) {
+			tvm := isMap(tv)
+			svm := isMap(sv)
+			if tvm && svm {
 				mergeStringMap(sv.(map[string]interface{}), tv.(map[string]interface{}))
+			} else if !tvm && !svm {
+				target[sk] = sv
 			}
 		}
 	}
