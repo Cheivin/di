@@ -143,8 +143,13 @@ func (container *di) GetBean(beanName string) (interface{}, bool) {
 }
 
 func (container *di) NewBean(beanType interface{}) (bean interface{}) {
-	_, beanName := container.parseBeanType(beanType)
-	return container.NewBeanByName(beanName)
+	prototype, beanName := container.parseBeanType(beanType)
+	// 检查beanDefinition是否存在
+	if _, exist := container.beanDefinitionMap[beanName]; !exist {
+		return NewBean(newDefinition(beanName, prototype))
+	} else {
+		return container.NewBeanByName(beanName)
+	}
 }
 
 func (container *di) NewBeanByName(beanName string) (bean interface{}) {
@@ -152,7 +157,11 @@ func (container *di) NewBeanByName(beanName string) (bean interface{}) {
 	if !ok {
 		panic(fmt.Errorf("%w: %s notfound", ErrDefinition, beanName))
 	}
-	container.log.Info(fmt.Sprintf("new bean instance %s", beanName))
+	return container.newBean(def)
+}
+
+func (container *di) newBean(def definition) (bean interface{}) {
+	container.log.Info(fmt.Sprintf("new bean instance %s", def.Name))
 	// 反射实例并注入值
 	prototype := container.instanceBean(def)
 	// 触发构造方法
