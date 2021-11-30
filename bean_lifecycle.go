@@ -67,20 +67,20 @@ func (container *di) constructBean(beanName string, prototype interface{}) {
 func (container *di) processBean(prototype interface{}, def definition) interface{} {
 	// 注入前方法
 	if initialize, ok := prototype.(PreInitializeWithContainer); ok {
-		container.log.Debug(fmt.Sprintf("call lifecycle interface PreInitializeWithContainer for %s(%T)", def.Name, def.Type.String()))
+		container.log.Debug(fmt.Sprintf("call lifecycle interface PreInitializeWithContainer for %s(%s)", def.Name, def.Type.String()))
 		initialize.PreInitialize(container)
 	} else if initialize, ok := prototype.(PreInitialize); ok {
-		container.log.Debug(fmt.Sprintf("call lifecycle interface PreInitialize for %s(%T)", def.Name, def.Type.String()))
+		container.log.Debug(fmt.Sprintf("call lifecycle interface PreInitialize for %s(%s)", def.Name, def.Type.String()))
 		initialize.PreInitialize()
 	}
 	bean := reflect.ValueOf(prototype).Elem()
 	container.wireBean(bean, def)
 	// 注入后方法
 	if propertiesSet, ok := prototype.(AfterPropertiesSetWithContainer); ok {
-		container.log.Debug(fmt.Sprintf("call lifecycle interface AfterPropertiesSetWithContainer for %s(%T)", def.Name, def.Type.String()))
+		container.log.Debug(fmt.Sprintf("call lifecycle interface AfterPropertiesSetWithContainer for %s(%s)", def.Name, def.Type.String()))
 		propertiesSet.AfterPropertiesSet(container)
 	} else if propertiesSet, ok := prototype.(AfterPropertiesSet); ok {
-		container.log.Debug(fmt.Sprintf("call lifecycle interface AfterPropertiesSet for %s(%T)", def.Name, def.Type.String()))
+		container.log.Debug(fmt.Sprintf("call lifecycle interface AfterPropertiesSet for %s(%s)", def.Name, def.Type.String()))
 		propertiesSet.AfterPropertiesSet()
 	}
 	return prototype
