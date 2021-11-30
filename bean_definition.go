@@ -3,6 +3,7 @@ package di
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 type (
@@ -20,6 +21,7 @@ type (
 		Type      reflect.Type
 		IsPtr     bool
 		Anonymous bool
+		Omitempty bool // 不存在依赖时则忽略注入
 	}
 )
 
@@ -36,6 +38,16 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 		switch field.Type.Kind() {
 		case reflect.Ptr, reflect.Interface, reflect.Struct:
 			if awareName, ok := field.Tag.Lookup("aware"); ok {
+				omitempty := false
+				switch {
+				case strings.EqualFold(awareName, "omitempty"):
+					omitempty = true
+					awareName = ""
+				case strings.HasSuffix(awareName, ",omitempty"):
+					omitempty = true
+					awareName = strings.TrimSuffix(awareName, ",omitempty")
+				}
+
 				switch field.Type.Kind() {
 				case reflect.Ptr:
 					if reflect.Interface == field.Type.Elem().Kind() {
@@ -60,6 +72,7 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 						Type:      field.Type,
 						IsPtr:     true,
 						Anonymous: field.Anonymous,
+						Omitempty: omitempty,
 					}
 				case reflect.Interface:
 					// 取类型名称为注入的beanName
@@ -72,6 +85,7 @@ func newDefinition(beanName string, prototype reflect.Type) definition {
 						Type:      field.Type,
 						IsPtr:     false,
 						Anonymous: field.Anonymous,
+						Omitempty: omitempty,
 					}
 				case reflect.Struct:
 					panic(fmt.Errorf("%w: aware bean not accept struct for %s.%s", ErrDefinition, prototype.String(), field.Name))

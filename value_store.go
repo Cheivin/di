@@ -10,35 +10,35 @@ type ValueStore interface {
 	GetAll() map[string]interface{}
 }
 
-func (di *DI) UseValueStore(v ValueStore) *DI {
-	di.valueStore = v
-	return di
+func (container *di) UseValueStore(v ValueStore) DI {
+	container.valueStore = v
+	return container
 }
 
-func (di *DI) Property() ValueStore {
-	return di.valueStore
+func (container *di) Property() ValueStore {
+	return container.valueStore
 }
 
-func (di *DI) SetDefaultProperty(key string, value interface{}) *DI {
-	di.valueStore.SetDefault(key, value)
-	return di
+func (container *di) SetDefaultProperty(key string, value interface{}) DI {
+	container.valueStore.SetDefault(key, value)
+	return container
 }
 
-func (di *DI) SetDefaultPropertyMap(properties map[string]interface{}) *DI {
+func (container *di) SetDefaultPropertyMap(properties map[string]interface{}) DI {
 	for key, value := range properties {
-		di.valueStore.SetDefault(key, value)
+		container.valueStore.SetDefault(key, value)
 	}
-	return di
+	return container
 }
 
-func (di *DI) SetProperty(key string, value interface{}) *DI {
-	di.valueStore.Set(key, value)
-	return di
+func (container *di) SetProperty(key string, value interface{}) DI {
+	container.valueStore.Set(key, value)
+	return container
 }
 
-func (di *DI) SetPropertyMap(properties map[string]interface{}) *DI {
+func (container *di) SetPropertyMap(properties map[string]interface{}) DI {
 	for key, value := range properties {
-		di.valueStore.Set(key, value)
+		container.valueStore.Set(key, value)
 	}
-	return di
+	return container
 }

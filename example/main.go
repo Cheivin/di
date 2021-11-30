@@ -19,9 +19,13 @@ type (
 		Prefix string
 	}
 
+	DB3 struct {
+	}
+
 	UserDao struct {
 		Db               *DB  `aware:"db"`
 		Db2              *DB2 `aware:""`
+		Db3              *DB3 `aware:"db3,omitempty"`
 		TableName        string
 		DefaultAge       int           `value:"base.user.age"`
 		DefaultName      string        `value:"base.user.name"`
@@ -59,7 +63,7 @@ func (o *OrderDao) TableName() string {
 	return o.Db.Prefix + "order"
 }
 
-func (u UserService) PreInitialize(container *di.DI) {
+func (u UserService) PreInitialize(container di.DI) {
 	fmt.Println("依赖注入", "UserService", container.Property())
 }
 
@@ -70,6 +74,7 @@ func (u *UserDao) BeanName() string {
 func (u *UserDao) AfterPropertiesSet() {
 	fmt.Println("装载完成", "UserDao")
 	fmt.Println("userDao.DB2", u.Db2)
+	fmt.Println("userDao.DB3", u.Db3)
 	u.TableName = "user"
 }
 

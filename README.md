@@ -366,8 +366,9 @@ func main() {
 
 `DI`使用`aware`作为标记依赖注入的Tag
 
-- Tag的完整格式为 `aware:"beanName"`
+- Tag的完整格式为 `aware:"beanName,omitempty"`
 - Tag标记可以为`结构体指针`或`接口`，但不支持`基本数据类型`和`结构体`、`方法`
+- `omitempty`用于标记该属性非强制依赖，即依赖的 bean 不存在时不会panic，而是设置为空值
 - 『**推荐**』如果Tag不传入任何值，即`aware:""`，则会根据[beanName生成策略](#beanname生成策略)得到beanName注入
 
 ```go
@@ -383,21 +384,30 @@ type (
 	}
 	CService struct {
 	}
+	DService struct{}
+	EService struct{}
 	BeanType struct {
-		A *AService          `aware:"aService"` // 指定beanName为aService
-		B *BService          `aware:""`         // 自动生成beanName为bService
-		C *CServiceInterface `aware:"c"`        // 注入CService
+		A *AService          `aware:"aService"`    // 指定beanName为aService
+		B *BService          `aware:""`            // 自动生成beanName为bService
+		C *CServiceInterface `aware:"c"`           // 注入CService
+		D *DService          `aware:"omitempty"`   // 注入 DService 如果配置的 bean 不存在不则不注入
+		E *EService          `aware:"e,omitempty"` // 注入 e 如果配置的 bean 不存在不则不注入
 	}
 )
 
 func (*CService) Method() {
 
 }
+func (DService) BeanName() string {
+	return "dService"
+}
 
 func main() {
 	di.ProvideNamedBean("c", CService{}).
 		Provide(AService{}).
 		Provide(BService{}).
+		//Provide(DService{}).
+		ProvideNamedBean("e", EService{}).
 		Provide(BeanType{}).
 		Load()
 }
@@ -409,25 +419,26 @@ func main() {
 
 - Tag的完整格式为 `value:"property"`
 - Tag标记可以为类型
-  - `基本数据类型`：
-      - `string`
-      - `bool`
-      - `int`
-      - `int64`
-      - `int32`
-      - `int16`
-      - `int8`
-      - `uint`
-      - `uint64`
-      - `uint32`
-      - `uint16`
-      - `uint8`
-      - `float64`
-      - `float32`
-  - `其他类型`:
-    - `time.Duration`
+    - `基本数据类型`：
+        - `string`
+        - `bool`
+        - `int`
+        - `int64`
+        - `int32`
+        - `int16`
+        - `int8`
+        - `uint`
+        - `uint64`
+        - `uint32`
+        - `uint16`
+        - `uint8`
+        - `float64`
+        - `float32`
+    - `其他类型`:
+        - `time.Duration`
 - 注：
-  - `time.Duration`,默认单位为`ms`，即`100`注入后值为`100ms`
+    - `time.Duration`,默认单位为`ms`，即`100`注入后值为`100ms`
+
 ```go
 package main
 

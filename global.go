@@ -6,25 +6,25 @@ import (
 	"strings"
 )
 
-var g *DI
+var g DI
 
 func init() {
 	g = New()
 }
 
-func RegisterBean(bean interface{}) *DI {
+func RegisterBean(bean interface{}) DI {
 	return g.RegisterBean(bean)
 }
 
-func RegisterNamedBean(name string, bean interface{}) *DI {
+func RegisterNamedBean(name string, bean interface{}) DI {
 	return g.RegisterNamedBean(name, bean)
 }
 
-func Provide(prototype interface{}) *DI {
+func Provide(prototype interface{}) DI {
 	return g.Provide(prototype)
 }
 
-func ProvideNamedBean(beanName string, prototype interface{}) *DI {
+func ProvideNamedBean(beanName string, prototype interface{}) DI {
 	return g.ProvideNamedBean(beanName, prototype)
 }
 
@@ -32,7 +32,15 @@ func GetBean(beanName string) (bean interface{}, ok bool) {
 	return g.GetBean(beanName)
 }
 
-func UseValueStore(v ValueStore) *DI {
+func NewBean(beanType interface{}) (bean interface{}) {
+	return g.NewBean(beanType)
+}
+
+func NewBeanByName(beanName string) (bean interface{}) {
+	return g.NewBeanByName(beanName)
+}
+
+func UseValueStore(v ValueStore) DI {
 	g.UseValueStore(v)
 	return g
 }
@@ -41,19 +49,19 @@ func Property() ValueStore {
 	return g.Property()
 }
 
-func SetDefaultProperty(key string, value interface{}) *DI {
+func SetDefaultProperty(key string, value interface{}) DI {
 	return g.SetDefaultProperty(key, value)
 }
 
-func SetDefaultPropertyMap(properties map[string]interface{}) *DI {
+func SetDefaultPropertyMap(properties map[string]interface{}) DI {
 	return g.SetDefaultPropertyMap(properties)
 }
 
-func SetProperty(key string, value interface{}) *DI {
+func SetProperty(key string, value interface{}) DI {
 	return g.SetProperty(key, value)
 }
 
-func SetPropertyMap(properties map[string]interface{}) *DI {
+func SetPropertyMap(properties map[string]interface{}) DI {
 	return g.SetPropertyMap(properties)
 }
 
@@ -92,5 +100,6 @@ func Serve(ctx context.Context) {
 }
 
 func LoadAndServ(ctx context.Context) {
-	g.LoadAndServ(ctx)
+	g.Load()
+	g.Serve(ctx)
 }
