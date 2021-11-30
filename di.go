@@ -12,6 +12,7 @@ import (
 
 type (
 	di struct {
+		log               Log
 		beanDefinitionMap map[string]definition  // Name:bean定义
 		prototypeMap      map[string]interface{} // Name:初始化的bean
 		beanMap           map[string]interface{} // Name:bean实例
@@ -28,8 +29,9 @@ var (
 	ErrLoaded     = errors.New("di loaded")
 )
 
-func New() DI {
+func New() *di {
 	return &di{
+		log:               stdLogger(),
 		beanDefinitionMap: map[string]definition{},
 		prototypeMap:      map[string]interface{}{},
 		beanMap:           map[string]interface{}{},
@@ -40,6 +42,7 @@ func New() DI {
 
 func (container *di) UnsafeMode(open bool) DI {
 	container.unsafe = open
+	container.log.Warn("Unsafe mode enabled!")
 	return container
 }
 
@@ -51,14 +54,27 @@ func (container *di) parseBeanType(beanType interface{}) (prototype reflect.Type
 	}
 	if tmpBeanName, ok := (reflect.New(prototype).Interface()).(BeanName); ok {
 		if name := tmpBeanName.BeanName(); name != "" {
+			container.log.Debug(fmt.Sprintf("beanName generate by interface BeanName for type %T, beanName: %s", beanType, name))
 			beanName = name
 		} else {
 			beanName = GetBeanName(beanType)
+			container.log.Debug(fmt.Sprintf("beanName generate by default for type %T, beanName: %s", beanType, name))
 		}
 	} else {
 		beanName = GetBeanName(beanType)
+		container.log.Debug(fmt.Sprintf("beanName generate by default for type %T, beanName: %s", beanType, beanName))
 	}
 	return
+}
+
+func (container *di) DebugMode(enable bool) DI {
+	container.log.DebugMode(enable)
+	return container
+}
+
+func (container *di) Log(log Log) DI {
+	container.log = log
+	return container
 }
 
 // RegisterBean 注册一个已生成的bean，根据bean类型生成beanName
@@ -69,17 +85,20 @@ func (container *di) RegisterBean(bean interface{}) DI {
 // RegisterNamedBean 以指定名称注册一个bean
 func (container *di) RegisterNamedBean(beanName string, bean interface{}) DI {
 	if !IsPtr(bean) {
-		panic(fmt.Errorf("%w: bean must be a pointer", ErrBean))
+		container.log.Fatal(fmt.Sprintf("%s: bean must be a pointer", ErrBean))
+		return container
 	}
 	if beanName == "" {
 		_, beanName = container.parseBeanType(bean)
 	}
 	if _, exist := container.beanMap[beanName]; exist {
-		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
+		container.log.Fatal(fmt.Sprintf("%s: bean %s already exists", ErrBean, beanName))
+		return container
 	}
 	container.beanMap[beanName] = bean
 	// 加入队列
 	container.beanSort.PushBack(beanName)
+	container.log.Info(fmt.Sprintf("register bean with name: %s", beanName))
 	return container
 }
 
@@ -90,7 +109,8 @@ func (container *di) Provide(prototype interface{}) DI {
 
 func (container *di) ProvideNamedBean(beanName string, beanType interface{}) DI {
 	if container.loaded {
-		panic(ErrLoaded)
+		container.log.Fatal(ErrLoaded.Error())
+		return container
 	}
 	var prototype reflect.Type
 	if beanName == "" {
@@ -101,16 +121,19 @@ func (container *di) ProvideNamedBean(beanName string, beanType interface{}) DI 
 
 	// 检查bean重复
 	if _, exist := container.beanMap[beanName]; exist {
-		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
+		container.log.Fatal(fmt.Sprintf("%s: bean %s already exists", ErrBean, beanName))
+		return container
 	}
 	// 检查beanDefinition重复
 	if existDefinition, exist := container.beanDefinitionMap[beanName]; exist {
-		panic(fmt.Errorf("%w: bean %s already defined by %s", ErrDefinition, beanName, existDefinition.Type.String()))
+		container.log.Fatal(fmt.Sprintf("%s: bean %s already defined by %s", ErrDefinition, beanName, existDefinition.Type.String()))
+		return container
 	} else {
 		container.beanDefinitionMap[beanName] = newDefinition(beanName, prototype)
 		// 加入队列
 		container.beanSort.PushBack(beanName)
 	}
+	container.log.Info(fmt.Sprintf("provide bean with name: %s", beanName))
 	return container
 }
 
@@ -129,26 +152,19 @@ func (container *di) NewBeanByName(beanName string) (bean interface{}) {
 	if !ok {
 		panic(fmt.Errorf("%w: %s notfound", ErrDefinition, beanName))
 	}
-	// 反射实例
-	prototype := reflect.New(def.Type).Interface()
-	// 注入值
-	container.wireValue(reflect.ValueOf(prototype).Elem(), def)
-	// 触发BeanConstruct
-	if construct, ok := prototype.(BeanConstructWithContainer); ok {
-		construct.BeanConstruct(container)
-	} else if construct, ok := prototype.(BeanConstruct); ok {
-		construct.BeanConstruct()
-	}
+	container.log.Info(fmt.Sprintf("new bean instance %s", beanName))
+	// 反射实例并注入值
+	prototype := container.instanceBean(def)
+	// 触发构造方法
+	container.constructBean(def.Name, prototype)
 	// 触发注入 bean
 	bean = container.processBean(prototype, def)
 	// 初始化完成
-	if initialized, ok := bean.(InitializedWithContainer); ok {
-		initialized.Initialized(container)
-	} else if initialized, ok := bean.(Initialized); ok {
-		initialized.Initialized()
-	}
+	container.initializedBean(def.Name, bean)
 	// 使用析构函数来完成 bean 的 destroy
-	runtime.SetFinalizer(bean, container.destroyBean)
+	runtime.SetFinalizer(bean, func(bean interface{}) {
+		container.destroyBean(def.Name, bean)
+	})
 	return
 }
 
@@ -182,7 +198,7 @@ func (container *di) initializeBeans() {
 	for e := container.beanSort.Front(); e != nil; e = e.Next() {
 		beanName := e.Value.(string)
 		if prototype, ok := container.prototypeMap[beanName]; ok {
-			container.constructBean(prototype)
+			container.constructBean(beanName, prototype)
 		}
 	}
 }
@@ -194,6 +210,8 @@ func (container *di) processBeans() {
 		if prototype, ok := container.prototypeMap[beanName]; ok {
 			def := container.beanDefinitionMap[beanName]
 			// 加载为bean
+			container.log.Info(fmt.Sprintf("initialize bean %s(%T)", def.Name, prototype))
+
 			container.beanMap[beanName] = container.processBean(prototype, def)
 		}
 	}
@@ -204,7 +222,7 @@ func (container *di) initialized() {
 	for e := container.beanSort.Front(); e != nil; e = e.Next() {
 		beanName := e.Value.(string)
 		bean := container.beanMap[beanName]
-		container.initializedBean(bean)
+		container.initializedBean(beanName, bean)
 	}
 }
 
@@ -213,9 +231,8 @@ func (container *di) destroyBeans() {
 	for e := container.beanSort.Back(); e != nil; e = e.Prev() {
 		beanName := e.Value.(string)
 		if bean, ok := container.beanMap[beanName]; ok {
-			container.destroyBean(bean)
+			container.destroyBean(beanName, bean)
 			delete(container.beanMap, beanName)
 		}
-		container.destroyBean(e.Value.(string))
 	}
 }

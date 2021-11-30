@@ -3,6 +3,10 @@ package di
 import "context"
 
 type DI interface {
+	DebugMode(bool) DI
+
+	Log(log Log) DI
+
 	RegisterBean(bean interface{}) DI
 
 	RegisterNamedBean(name string, bean interface{}) DI

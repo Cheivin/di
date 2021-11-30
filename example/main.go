@@ -117,6 +117,10 @@ func (u *UserService) Destroy() {
 	fmt.Println("注销实例", "UserService")
 }
 
+func (d *DB) Destroy() {
+	fmt.Println("注销实例", "DB")
+}
+
 func main() {
 	di.RegisterNamedBean("db", &DB{Prefix: "test_"}).
 		RegisterBean(&DB2{Prefix: "xxx_"}).
