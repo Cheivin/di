@@ -43,42 +43,6 @@ func (container *di) UnsafeMode(open bool) DI {
 	return container
 }
 
-// RegisterBean 注册一个已生成的bean，根据bean类型生成beanName
-func (container *di) RegisterBean(bean interface{}) DI {
-	return container.RegisterNamedBean("", bean)
-}
-
-// RegisterNamedBean 以指定名称注册一个bean
-func (container *di) RegisterNamedBean(beanName string, bean interface{}) DI {
-	if !IsPtr(bean) {
-		panic(fmt.Errorf("%w: bean must be a pointer", ErrBean))
-	}
-	if beanName == "" {
-		prototype := reflect.TypeOf(bean).Elem()
-		if tmpBeanName, ok := (reflect.New(prototype).Interface()).(BeanName); ok {
-			if name := tmpBeanName.BeanName(); name != "" {
-				beanName = name
-			} else {
-				beanName = GetBeanName(bean)
-			}
-		} else {
-			beanName = GetBeanName(bean)
-		}
-	}
-	if _, exist := container.beanMap[beanName]; exist {
-		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
-	}
-	container.beanMap[beanName] = bean
-	// 加入队列
-	container.beanSort.PushBack(beanName)
-	return container
-}
-
-func (container *di) Provide(prototype interface{}) DI {
-	container.ProvideNamedBean("", prototype)
-	return container
-}
-
 func (container *di) parseBeanType(beanType interface{}) (prototype reflect.Type, beanName string) {
 	if IsPtr(beanType) {
 		prototype = reflect.TypeOf(beanType).Elem()
@@ -95,6 +59,33 @@ func (container *di) parseBeanType(beanType interface{}) (prototype reflect.Type
 		beanName = GetBeanName(beanType)
 	}
 	return
+}
+
+// RegisterBean 注册一个已生成的bean，根据bean类型生成beanName
+func (container *di) RegisterBean(bean interface{}) DI {
+	return container.RegisterNamedBean("", bean)
+}
+
+// RegisterNamedBean 以指定名称注册一个bean
+func (container *di) RegisterNamedBean(beanName string, bean interface{}) DI {
+	if !IsPtr(bean) {
+		panic(fmt.Errorf("%w: bean must be a pointer", ErrBean))
+	}
+	if beanName == "" {
+		_, beanName = container.parseBeanType(bean)
+	}
+	if _, exist := container.beanMap[beanName]; exist {
+		panic(fmt.Errorf("%w: bean %s already exists", ErrBean, beanName))
+	}
+	container.beanMap[beanName] = bean
+	// 加入队列
+	container.beanSort.PushBack(beanName)
+	return container
+}
+
+func (container *di) Provide(prototype interface{}) DI {
+	container.ProvideNamedBean("", prototype)
+	return container
 }
 
 func (container *di) ProvideNamedBean(beanName string, beanType interface{}) DI {
