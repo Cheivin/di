@@ -146,7 +146,7 @@ func (container *di) NewBean(beanType interface{}) (bean interface{}) {
 	prototype, beanName := container.parseBeanType(beanType)
 	// 检查beanDefinition是否存在
 	if _, exist := container.beanDefinitionMap[beanName]; !exist {
-		return NewBean(newDefinition(beanName, prototype))
+		return container.newBean(newDefinition(beanName, prototype))
 	} else {
 		return container.NewBeanByName(beanName)
 	}
