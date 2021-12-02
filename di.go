@@ -52,15 +52,16 @@ func (container *di) parseBeanType(beanType interface{}) (prototype reflect.Type
 	} else {
 		prototype = reflect.TypeOf(beanType)
 	}
-	if tmpBeanName, ok := (reflect.New(prototype).Interface()).(BeanName); ok {
-		if name := tmpBeanName.BeanName(); name != "" {
+	// 生成beanName
+	tmpBeanName := reflect.New(prototype).Interface()
+	switch tmpBeanName.(type) {
+	case BeanName:
+		if name := tmpBeanName.(BeanName).BeanName(); name != "" {
 			container.log.Debug(fmt.Sprintf("beanName generate by interface BeanName for type %T, beanName: %s", beanType, name))
 			beanName = name
-		} else {
-			beanName = GetBeanName(beanType)
-			container.log.Debug(fmt.Sprintf("beanName generate by default for type %T, beanName: %s", beanType, name))
 		}
-	} else {
+	}
+	if beanName == "" {
 		beanName = GetBeanName(beanType)
 		container.log.Debug(fmt.Sprintf("beanName generate by default for type %T, beanName: %s", beanType, beanName))
 	}
@@ -129,7 +130,7 @@ func (container *di) ProvideNamedBean(beanName string, beanType interface{}) DI 
 		container.log.Fatal(fmt.Sprintf("%s: bean %s already defined by %s", ErrDefinition, beanName, existDefinition.Type.String()))
 		return container
 	} else {
-		container.beanDefinitionMap[beanName] = newDefinition(beanName, prototype)
+		container.beanDefinitionMap[beanName] = container.newDefinition(beanName, prototype)
 		// 加入队列
 		container.beanSort.PushBack(beanName)
 	}
@@ -146,7 +147,7 @@ func (container *di) NewBean(beanType interface{}) (bean interface{}) {
 	prototype, beanName := container.parseBeanType(beanType)
 	// 检查beanDefinition是否存在
 	if _, exist := container.beanDefinitionMap[beanName]; !exist {
-		return container.newBean(newDefinition(beanName, prototype))
+		return container.newBean(container.newDefinition(beanName, prototype))
 	} else {
 		return container.NewBeanByName(beanName)
 	}
@@ -220,7 +221,7 @@ func (container *di) processBeans() {
 			def := container.beanDefinitionMap[beanName]
 			// 加载为bean
 			container.log.Info(fmt.Sprintf("initialize bean %s(%T)", def.Name, prototype))
-
+			// 加载完成的bean放入beanMap中
 			container.beanMap[beanName] = container.processBean(prototype, def)
 		}
 	}

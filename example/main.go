@@ -50,7 +50,7 @@ type (
 	UserService struct {
 		UserDao  *UserDao        `aware:""`
 		Wallet   *WalletDao      `aware:""`
-		OrderDao OrderRepository `aware:"order"`
+		OrderDao OrderRepository `aware:""`
 	}
 )
 
@@ -126,6 +126,7 @@ func main() {
 		RegisterBean(&DB2{Prefix: "xxx_"}).
 		ProvideNamedBean("user", UserDao{}).
 		Provide(WalletDao{}).
+		ProvideNamedBean("multiOne", OrderDao{}).
 		Provide(OrderDao{}).
 		Provide(UserService{}).
 		SetDefaultProperty("base.user.name", "新用户").

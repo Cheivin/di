@@ -14,31 +14,32 @@ func (container *di) wireValue(bean reflect.Value, def definition) {
 	}
 	for filedName, valueInfo := range def.valueMap {
 		value := container.valueStore.Get(valueInfo.Name)
-		if value != nil {
-			castValue, err := van.Cast(value, valueInfo.Type)
-			if err != nil {
-				container.log.Fatal(fmt.Sprintf("%s: %s(%s) wire value failed for %s(%s.%s), %s",
-					ErrBean, valueInfo.Name, valueInfo.Type.String(),
-					def.Name, def.Type.String(), filedName,
-					err.Error(),
-				))
-				return
-			}
-			val := reflect.ValueOf(castValue)
-			// 设置值
-			if container.unsafe {
-				container.log.Debug(fmt.Sprintf("wire value for %s(%s.%s) in unsafe mode",
-					def.Name, def.Type.String(), filedName,
-				))
-				field := bean.FieldByName(filedName)
-				field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()
-				field.Set(val)
-			} else {
-				container.log.Debug(fmt.Sprintf("wire value for %s(%s.%s)",
-					def.Name, def.Type.String(), filedName,
-				))
-				bean.FieldByName(filedName).Set(val)
-			}
+		if value == nil {
+			continue
+		}
+		castValue, err := van.Cast(value, valueInfo.Type)
+		if err != nil {
+			container.log.Fatal(fmt.Sprintf("%s: %s(%s) wire value failed for %s(%s.%s), %s",
+				ErrBean, valueInfo.Name, valueInfo.Type.String(),
+				def.Name, def.Type.String(), filedName,
+				err.Error(),
+			))
+			return
+		}
+		val := reflect.ValueOf(castValue)
+		// 设置值
+		if container.unsafe {
+			container.log.Debug(fmt.Sprintf("wire value for %s(%s.%s) in unsafe mode",
+				def.Name, def.Type.String(), filedName,
+			))
+			field := bean.FieldByName(filedName)
+			field = reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).Elem()
+			field.Set(val)
+		} else {
+			container.log.Debug(fmt.Sprintf("wire value for %s(%s.%s)",
+				def.Name, def.Type.String(), filedName,
+			))
+			bean.FieldByName(filedName).Set(val)
 		}
 	}
 }
@@ -54,36 +55,66 @@ func (container *di) instanceBean(def definition) interface{} {
 
 // constructBean 触发bean构造方法
 func (container *di) constructBean(beanName string, prototype interface{}) {
-	if construct, ok := prototype.(BeanConstructWithContainer); ok {
+	switch prototype.(type) {
+	case BeanConstructWithContainer:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface BeanConstructWithContainer for %s(%T)", beanName, prototype))
-		construct.BeanConstruct(container)
-	} else if construct, ok := prototype.(BeanConstruct); ok {
+		prototype.(BeanConstructWithContainer).BeanConstruct(container)
+	case BeanConstruct:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface BeanConstruct for %s(%T)", beanName, prototype))
-		construct.BeanConstruct()
+		prototype.(BeanConstruct).BeanConstruct()
 	}
 }
 
 // processBean 处理bean依赖注入
 func (container *di) processBean(prototype interface{}, def definition) interface{} {
 	// 注入前方法
-	if initialize, ok := prototype.(PreInitializeWithContainer); ok {
+	switch prototype.(type) {
+	case PreInitializeWithContainer:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface PreInitializeWithContainer for %s(%s)", def.Name, def.Type.String()))
-		initialize.PreInitialize(container)
-	} else if initialize, ok := prototype.(PreInitialize); ok {
+		prototype.(PreInitializeWithContainer).PreInitialize(container)
+	case PreInitialize:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface PreInitialize for %s(%s)", def.Name, def.Type.String()))
-		initialize.PreInitialize()
+		prototype.(PreInitialize).PreInitialize()
 	}
+
 	bean := reflect.ValueOf(prototype).Elem()
 	container.wireBean(bean, def)
+
 	// 注入后方法
-	if propertiesSet, ok := prototype.(AfterPropertiesSetWithContainer); ok {
+	switch prototype.(type) {
+	case AfterPropertiesSetWithContainer:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface AfterPropertiesSetWithContainer for %s(%s)", def.Name, def.Type.String()))
-		propertiesSet.AfterPropertiesSet(container)
-	} else if propertiesSet, ok := prototype.(AfterPropertiesSet); ok {
+		prototype.(AfterPropertiesSetWithContainer).AfterPropertiesSet(container)
+	case AfterPropertiesSet:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface AfterPropertiesSet for %s(%s)", def.Name, def.Type.String()))
-		propertiesSet.AfterPropertiesSet()
+		prototype.(AfterPropertiesSet).AfterPropertiesSet()
 	}
 	return prototype
+}
+
+// findBeanByName 根据名称查找bean
+func (container *di) findBeanByName(beanName string) (awareBean interface{}, ok bool) {
+	// 从注册的bean中查找
+	if awareBean, ok = container.beanMap[beanName]; !ok {
+		// 从原型定义中查找
+		awareBean, ok = container.prototypeMap[beanName]
+	}
+	return
+}
+
+func (container *di) findBeanByType(beanType reflect.Type) (interface{}, string) {
+	// 根据排序遍历beanName查找
+	for e := container.beanSort.Front(); e != nil; e = e.Next() {
+		findBeanName := e.Value.(string)
+		if prototype, ok := container.prototypeMap[findBeanName]; ok {
+			if reflect.TypeOf(prototype).AssignableTo(beanType) {
+				return prototype, findBeanName
+				//fmt.Println(findBeanName,prototype)
+			}
+		}
+	}
+	// TODO 起始可能会找到多个，但是这里按bean注册的先后顺序去处理，取第一个
+	return nil, ""
 }
 
 // wireBean 注入单个依赖
@@ -94,109 +125,39 @@ func (container *di) wireBean(bean reflect.Value, def definition) {
 	for filedName, awareInfo := range def.awareMap {
 		var awareBean interface{}
 		var ok bool
-		if awareBean, ok = container.beanMap[awareInfo.Name]; !ok {
-			// 手动注册的bean中找不到，尝试查找原型定义
-			if awareBean, ok = container.prototypeMap[awareInfo.Name]; !ok {
-				// 如果原型定义找不到，判断是否Omitempty
-				if awareInfo.Omitempty {
-					container.log.Warn(fmt.Sprintf("Omitempty: dependent bean %s not found for %s(%s.%s)",
-						awareInfo.Name,
-						def.Name,
-						def.Type.String(),
-						filedName,
-					))
-					continue
-				}
-				container.log.Fatal(fmt.Sprintf("%s: %s notfound for %s(%s.%s)",
-					ErrBean,
+
+		// 根据名称查找bean
+		awareBean, ok = container.findBeanByName(awareInfo.Name)
+		// 如果是接口类型
+		if awareInfo.IsInterface && !ok {
+			var interfaceBeanName string
+			awareBean, interfaceBeanName = container.findBeanByType(awareInfo.Type)
+			if awareBean != nil {
+				ok = true
+				container.log.Info(fmt.Sprintf("interface %s implemented by %s(%T) will be set to %s(%s.%s)",
+					awareInfo.Type.String(), interfaceBeanName, awareBean,
+					def.Name, def.Type.String(), filedName,
+				))
+			}
+		}
+		if !ok {
+			if awareInfo.Omitempty {
+				container.log.Warn(fmt.Sprintf("Omitempty: dependent bean %s not found for %s(%s.%s)",
 					awareInfo.Name,
 					def.Name,
 					def.Type.String(),
-					filedName,
-				))
-				return
+					filedName))
+				continue
 			}
+			container.log.Fatal(fmt.Sprintf("%s: %s notfound for %s(%s.%s)",
+				ErrBean,
+				awareInfo.Name,
+				def.Name,
+				def.Type.String(),
+				filedName))
 		}
 		value := reflect.ValueOf(awareBean)
-		// 匿名字段不能实现BeanConstruct/PreInitialize/AfterPropertiesSet/Initialized/Disposable等生命周期接口
-		if awareInfo.Anonymous {
-			errMsg := "%s: %s(%s) as anonymous field in %s(%s.%s) can not implements %s"
-			if _, ok := awareBean.(BeanConstruct); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"BeanConstruct",
-				))
-				return
-			} else if _, ok := awareBean.(BeanConstructWithContainer); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"BeanConstructWithContainer",
-				))
-				return
-			}
-			if _, ok := awareBean.(PreInitialize); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"PreInitialize",
-				))
-				return
-			} else if _, ok := awareBean.(PreInitializeWithContainer); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"PreInitializeWithContainer",
-				))
-				return
-			}
-			if _, ok := awareBean.(AfterPropertiesSet); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"AfterPropertiesSet",
-				))
-				return
-			} else if _, ok := awareBean.(AfterPropertiesSetWithContainer); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"AfterPropertiesSetWithContainer",
-				))
-				return
-			}
-			if _, ok := awareBean.(Initialized); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"Initialized",
-				))
-				return
-			} else if _, ok := awareBean.(InitializedWithContainer); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"InitializedWithContainer",
-				))
-				return
-			}
-			if _, ok := awareBean.(Disposable); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"Disposable",
-				))
-				return
-			} else if _, ok := awareBean.(DisposableWithContainer); ok {
-				container.log.Fatal(fmt.Sprintf(errMsg,
-					ErrBean, awareInfo.Name,
-					value.Type().String(), def.Name, def.Type.String(), filedName,
-					"DisposableWithContainer",
-				))
-				return
-			}
-		}
+
 		// 类型检查
 		if awareInfo.IsPtr { // 指针类型
 			if !value.Type().AssignableTo(awareInfo.Type) {
@@ -257,27 +218,24 @@ func (container *di) wireBean(bean reflect.Value, def definition) {
 
 // processInitialized bean初始化完成
 func (container *di) initializedBean(beanName string, bean interface{}) {
-	// 初始化完成
-	if initialized, ok := bean.(InitializedWithContainer); ok {
+	switch bean.(type) {
+	case InitializedWithContainer:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface InitializedWithContainer for %s(%T)", beanName, bean))
-
-		initialized.Initialized(container)
-	} else if initialized, ok := bean.(Initialized); ok {
+		bean.(InitializedWithContainer).Initialized(container)
+	case Initialized:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface Initialized for %s(%T)", beanName, bean))
-
-		initialized.Initialized()
+		bean.(Initialized).Initialized()
 	}
 }
 
 // destroyBean 销毁bean
 func (container *di) destroyBean(beanName string, bean interface{}) {
-	if disposable, ok := bean.(DisposableWithContainer); ok {
+	switch bean.(type) {
+	case DisposableWithContainer:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface DisposableWithContainer for %s(%T)", beanName, bean))
-
-		disposable.Destroy(container)
-	} else if disposable, ok := bean.(Disposable); ok {
+		bean.(DisposableWithContainer).Destroy(container)
+	case Disposable:
 		container.log.Debug(fmt.Sprintf("call lifecycle interface Disposable for %s(%T)", beanName, bean))
-
-		disposable.Destroy()
+		bean.(Disposable).Destroy()
 	}
 }
