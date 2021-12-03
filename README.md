@@ -638,3 +638,9 @@ func main() {
 		Load()
 }
 ```
+
+## 特别鸣谢
+
+[![JetBrains](https://raw.githubusercontent.com/kainonly/ngx-bit/main/resource/jetbrains.svg)](https://www.jetbrains.com/?from=cheivin)
+
+感谢 [JetBrains](https://www.jetbrains.com/?from=cheivin) 提供的开源开发许可证。
