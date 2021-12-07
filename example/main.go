@@ -126,8 +126,8 @@ func main() {
 		RegisterBean(&DB2{Prefix: "xxx_"}).
 		ProvideNamedBean("user", UserDao{}).
 		Provide(WalletDao{}).
-		ProvideNamedBean("multiOne", OrderDao{}).
 		Provide(OrderDao{}).
+		ProvideNamedBean("multiOne", OrderDao{}).
 		Provide(UserService{}).
 		SetDefaultProperty("base.user.name", "新用户").
 		SetProperty("base.user.age", 25).

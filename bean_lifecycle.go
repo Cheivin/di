@@ -102,19 +102,22 @@ func (container *di) findBeanByName(beanName string) (awareBean interface{}, ok 
 	return
 }
 
-func (container *di) findBeanByType(beanType reflect.Type) (interface{}, string) {
+func (container *di) findBeanByType(beanType reflect.Type) (bean interface{}, beanName string) {
 	// 根据排序遍历beanName查找
 	for e := container.beanSort.Front(); e != nil; e = e.Next() {
 		findBeanName := e.Value.(string)
 		if prototype, ok := container.prototypeMap[findBeanName]; ok {
 			if reflect.TypeOf(prototype).AssignableTo(beanType) {
-				return prototype, findBeanName
-				//fmt.Println(findBeanName,prototype)
+				container.log.Info(fmt.Sprintf("find interface %s implemented by %s(%T)",
+					beanType.String(), findBeanName, prototype,
+				))
+				bean = prototype
+				beanName = findBeanName
 			}
 		}
 	}
-	// TODO 起始可能会找到多个，但是这里按bean注册的先后顺序去处理，取第一个
-	return nil, ""
+	// TODO 起始可能会找到多个，但是这里按bean注册的先后顺序去处理，取最后一个
+	return
 }
 
 // wireBean 注入单个依赖
@@ -134,8 +137,8 @@ func (container *di) wireBean(bean reflect.Value, def definition) {
 			awareBean, interfaceBeanName = container.findBeanByType(awareInfo.Type)
 			if awareBean != nil {
 				ok = true
-				container.log.Info(fmt.Sprintf("interface %s implemented by %s(%T) will be set to %s(%s.%s)",
-					awareInfo.Type.String(), interfaceBeanName, awareBean,
+				container.log.Info(fmt.Sprintf("%s(%T) will be set to %s(%s.%s)",
+					interfaceBeanName, awareBean,
 					def.Name, def.Type.String(), filedName,
 				))
 			}
