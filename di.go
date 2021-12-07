@@ -47,11 +47,7 @@ func (container *di) UnsafeMode(open bool) DI {
 }
 
 func (container *di) parseBeanType(beanType interface{}) (prototype reflect.Type, beanName string) {
-	if IsPtr(beanType) {
-		prototype = reflect.TypeOf(beanType).Elem()
-	} else {
-		prototype = reflect.TypeOf(beanType)
-	}
+	prototype = reflect.Indirect(reflect.ValueOf(beanType)).Type()
 	// 生成beanName
 	tmpBeanName := reflect.New(prototype).Interface()
 	switch tmpBeanName.(type) {
@@ -141,6 +137,21 @@ func (container *di) ProvideNamedBean(beanName string, beanType interface{}) DI 
 func (container *di) GetBean(beanName string) (interface{}, bool) {
 	bean, ok := container.beanMap[beanName]
 	return bean, ok
+}
+
+func (container *di) GetByType(beanType interface{}) (interface{}, bool) {
+	var typeValue reflect.Type
+	if IsPtr(beanType) {
+		typeValue = reflect.TypeOf(beanType)
+	} else {
+		typeValue = reflect.PtrTo(reflect.TypeOf(beanType))
+	}
+	for _, bean := range container.beanMap {
+		if reflect.TypeOf(bean).AssignableTo(typeValue) {
+			return bean, true
+		}
+	}
+	return nil, false
 }
 
 func (container *di) NewBean(beanType interface{}) (bean interface{}) {

@@ -17,6 +17,8 @@ type DI interface {
 
 	GetBean(beanName string) (bean interface{}, ok bool)
 
+	GetByType(beanType interface{}) (bean interface{}, ok bool)
+
 	NewBean(beanType interface{}) (bean interface{})
 
 	NewBeanByName(beanName string) (bean interface{})

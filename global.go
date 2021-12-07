@@ -32,6 +32,10 @@ func GetBean(beanName string) (bean interface{}, ok bool) {
 	return g.GetBean(beanName)
 }
 
+func GetByType(beanType interface{}) (bean interface{}, ok bool) {
+	return g.GetByType(beanType)
+}
+
 func NewBean(beanType interface{}) (bean interface{}) {
 	return g.NewBean(beanType)
 }

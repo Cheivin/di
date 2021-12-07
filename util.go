@@ -17,11 +17,7 @@ func GetBeanName(o interface{}) (name string) {
 		}
 		name = t.Name()
 	} else {
-		if IsPtr(o) {
-			name = reflect.TypeOf(o).Elem().Name()
-		} else {
-			name = reflect.TypeOf(o).Name()
-		}
+		name = reflect.Indirect(reflect.ValueOf(o)).Type().Name()
 	}
 	// 简单粗暴将首字母小写
 	name = strings.ToLower(name[:1]) + name[1:]
