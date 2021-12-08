@@ -38,4 +38,6 @@ type DI interface {
 	Load()
 
 	Serve(ctx context.Context)
+
+	Context() context.Context
 }

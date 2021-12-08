@@ -20,8 +20,13 @@ type (
 		unsafe            bool
 		valueStore        ValueStore
 		beanSort          *list.List
+		ctx               context.Context
 	}
 )
+
+func (container *di) Context() context.Context {
+	return container.ctx
+}
 
 var (
 	ErrBean       = errors.New("error bean")
@@ -37,6 +42,7 @@ func New() *di {
 		beanMap:           map[string]interface{}{},
 		valueStore:        van.New(),
 		beanSort:          list.New(),
+		ctx:               context.Background(),
 	}
 }
 
@@ -205,7 +211,10 @@ func (container *di) Serve(ctx context.Context) {
 	if !container.loaded {
 		panic(ErrLoaded)
 	}
+	var cancel context.CancelFunc
+	container.ctx, cancel = context.WithCancel(ctx)
 	<-ctx.Done()
+	defer cancel()
 	container.destroyBeans()
 }
 
