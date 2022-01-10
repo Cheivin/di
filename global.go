@@ -69,6 +69,14 @@ func SetPropertyMap(properties map[string]interface{}) DI {
 	return g.SetPropertyMap(properties)
 }
 
+func GetProperty(key string) interface{} {
+	return g.GetProperty(key)
+}
+
+func LoadProperties(prefix string, propertyType interface{}) interface{} {
+	return g.LoadProperties(prefix, propertyType)
+}
+
 func AutoMigrateEnv() {
 	envMap := LoadEnvironment(strings.NewReplacer("_", "."), false)
 	SetPropertyMap(envMap)

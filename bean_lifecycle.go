@@ -8,19 +8,20 @@ import (
 )
 
 // wireValue 注入配置项
-func (container *di) wireValue(bean reflect.Value, def definition) {
+func (container *di) wireValue(bean reflect.Value, def definition, prefix string) {
 	if len(def.valueMap) > 0 {
 		container.log.Info(fmt.Sprintf("wire value for bean %s(%s)", def.Name, def.Type.String()))
 	}
 	for filedName, valueInfo := range def.valueMap {
-		value := container.valueStore.Get(valueInfo.Name)
+		valueName := prefix + valueInfo.Name
+		value := container.valueStore.Get(valueName)
 		if value == nil {
 			continue
 		}
 		castValue, err := van.Cast(value, valueInfo.Type)
 		if err != nil {
 			container.log.Fatal(fmt.Sprintf("%s: %s(%s) wire value failed for %s(%s.%s), %s",
-				ErrBean, valueInfo.Name, valueInfo.Type.String(),
+				ErrBean, valueName, valueInfo.Type.String(),
 				def.Name, def.Type.String(), filedName,
 				err.Error(),
 			))
@@ -49,7 +50,7 @@ func (container *di) instanceBean(def definition) interface{} {
 	container.log.Debug(fmt.Sprintf("reflect instance for %s(%s)", def.Name, def.Type.String()))
 	prototype := reflect.New(def.Type).Interface()
 	// 注入值
-	container.wireValue(reflect.ValueOf(prototype).Elem(), def)
+	container.wireValue(reflect.ValueOf(prototype).Elem(), def, "")
 	return prototype
 }
 

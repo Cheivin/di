@@ -67,7 +67,7 @@ func Cast(v interface{}, typ reflect.Type) (to interface{}, err error) {
 		return toString(v), nil
 	}
 	value := reflect.ValueOf(v)
-	if value.Type().ConvertibleTo(typ) {
+	if value.Type().ConvertibleTo(typ) && typ != typeDuration {
 		return value.Convert(typ).Interface(), nil
 	}
 	s := toString(v)

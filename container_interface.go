@@ -35,6 +35,10 @@ type DI interface {
 
 	SetPropertyMap(properties map[string]interface{}) DI
 
+	GetProperty(key string) interface{}
+
+	LoadProperties(prefix string, propertyType interface{}) interface{}
+
 	Load()
 
 	Serve(ctx context.Context)

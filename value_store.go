@@ -1,5 +1,7 @@
 package di
 
+import "reflect"
+
 type ValueStore interface {
 	SetDefault(key string, value interface{})
 
@@ -41,4 +43,16 @@ func (container *di) SetPropertyMap(properties map[string]interface{}) DI {
 		container.valueStore.Set(key, value)
 	}
 	return container
+}
+
+func (container *di) GetProperty(key string) interface{} {
+	return container.valueStore.Get(key)
+}
+
+func (container *di) LoadProperties(prefix string, propertyType interface{}) interface{} {
+	prototype := reflect.Indirect(reflect.ValueOf(propertyType)).Type()
+	def := container.getValueDefinition(prototype)
+	bean := reflect.New(def.Type)
+	container.wireValue(bean.Elem(), def, prefix)
+	return bean.Elem().Interface()
 }
