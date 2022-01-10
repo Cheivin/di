@@ -122,6 +122,32 @@ func (container *di) newDefinition(beanName string, prototype reflect.Type) defi
 	return def
 }
 
+func (container *di) getValueDefinition(prototype reflect.Type) definition {
+	def := definition{Name: prototype.Name(), Type: prototype}
+	valueMap := map[string]aware{}
+	for i := 0; i < prototype.NumField(); i++ {
+		field := prototype.Field(i)
+		switch field.Type.Kind() {
+		case reflect.String, reflect.Bool,
+			reflect.Float64, reflect.Float32,
+			reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
+			reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
+			if property, ok := field.Tag.Lookup("value"); ok {
+				if property != "" {
+					valueMap[field.Name] = aware{
+						Name: property,
+						Type: field.Type,
+					}
+				}
+			}
+		default:
+			// ignore其他类型
+		}
+	}
+	def.valueMap = valueMap
+	return def
+}
+
 // checkAnonymousFieldBean 检查匿名字段不能实现的接口
 func checkAnonymousFieldBean(awareBean interface{}) string {
 	// 匿名字段不能实现BeanConstruct/PreInitialize/AfterPropertiesSet/Initialized/Disposable等生命周期接口
