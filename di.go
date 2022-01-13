@@ -152,7 +152,6 @@ func (container *di) getAllByType(beanType interface{}, limitOne bool) (beans []
 		if typeValue.Kind() == reflect.Struct {
 			typeValue = reflect.PtrTo(typeValue)
 		}
-		fmt.Println(1, typeValue, typeValue.Kind())
 	} else {
 		typeValue = reflect.PtrTo(reflect.TypeOf(beanType))
 	}
