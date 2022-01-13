@@ -19,6 +19,8 @@ type DI interface {
 
 	GetByType(beanType interface{}) (bean interface{}, ok bool)
 
+	GetByTypeAll(beanType interface{}) (beans []BeanWithName)
+
 	NewBean(beanType interface{}) (bean interface{})
 
 	NewBeanByName(beanName string) (bean interface{})

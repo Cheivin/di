@@ -67,6 +67,15 @@ func (u UserService) PreInitialize(container di.DI) {
 	fmt.Println("依赖注入", "UserService", container.Property())
 }
 
+func (u UserService) BeanInject(di di.DI, info *di.InjectInfo) {
+	switch info.BeanName {
+	case "orderRepository":
+		info.Bean = &OrderDao{&DB{Prefix: "BeanInject"}}
+	}
+	fmt.Println("BeanInject:", info.BeanName)
+
+}
+
 func (u *UserDao) BeanName() string {
 	return "user"
 }

@@ -145,19 +145,42 @@ func (container *di) GetBean(beanName string) (interface{}, bool) {
 	return bean, ok
 }
 
-func (container *di) GetByType(beanType interface{}) (interface{}, bool) {
+func (container *di) getAllByType(beanType interface{}, limitOne bool) (beans []BeanWithName) {
 	var typeValue reflect.Type
 	if IsPtr(beanType) {
-		typeValue = reflect.TypeOf(beanType)
+		typeValue = reflect.ValueOf(beanType).Elem().Type()
+		if typeValue.Kind() == reflect.Struct {
+			typeValue = reflect.PtrTo(typeValue)
+		}
+		fmt.Println(1, typeValue, typeValue.Kind())
 	} else {
 		typeValue = reflect.PtrTo(reflect.TypeOf(beanType))
 	}
-	for _, bean := range container.beanMap {
+	for name, bean := range container.beanMap {
 		if reflect.TypeOf(bean).AssignableTo(typeValue) {
-			return bean, true
+			beans = append(beans, BeanWithName{
+				Name: name,
+				Bean: bean,
+			})
+			if limitOne {
+				return
+			}
 		}
 	}
-	return nil, false
+	return
+}
+
+func (container *di) GetByType(beanType interface{}) (interface{}, bool) {
+	beans := container.getAllByType(beanType, true)
+	if len(beans) == 0 {
+		return nil, false
+	} else {
+		return beans[0].Bean, true
+	}
+}
+
+func (container *di) GetByTypeAll(beanType interface{}) (beans []BeanWithName) {
+	return container.getAllByType(beanType, false)
 }
 
 func (container *di) NewBean(beanType interface{}) (bean interface{}) {

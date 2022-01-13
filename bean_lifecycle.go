@@ -103,7 +103,13 @@ func (container *di) findBeanByName(beanName string) (awareBean interface{}, ok 
 	return
 }
 
-func (container *di) findBeanByType(beanType reflect.Type) (bean interface{}, beanName string) {
+type BeanWithName struct {
+	Name string
+	Bean interface{}
+}
+
+func (container *di) findBeanByType(beanType reflect.Type) []BeanWithName {
+	var beans []BeanWithName
 	// 根据排序遍历beanName查找
 	for e := container.beanSort.Front(); e != nil; e = e.Next() {
 		findBeanName := e.Value.(string)
@@ -112,13 +118,11 @@ func (container *di) findBeanByType(beanType reflect.Type) (bean interface{}, be
 				container.log.Info(fmt.Sprintf("find interface %s implemented by %s(%T)",
 					beanType.String(), findBeanName, prototype,
 				))
-				bean = prototype
-				beanName = findBeanName
+				beans = append(beans, BeanWithName{Name: findBeanName, Bean: prototype})
 			}
 		}
 	}
-	// TODO 起始可能会找到多个，但是这里按bean注册的先后顺序去处理，取最后一个
-	return
+	return beans
 }
 
 // wireBean 注入单个依赖
@@ -134,16 +138,35 @@ func (container *di) wireBean(bean reflect.Value, def definition) {
 		awareBean, ok = container.findBeanByName(awareInfo.Name)
 		// 如果是接口类型
 		if awareInfo.IsInterface && !ok {
-			var interfaceBeanName string
-			awareBean, interfaceBeanName = container.findBeanByType(awareInfo.Type)
-			if awareBean != nil {
+			awareBeans := container.findBeanByType(awareInfo.Type)
+			if len(awareBeans) > 0 {
+				selectBean := awareBeans[len(awareBeans)-1]
+				awareBean = selectBean.Bean
 				ok = true
 				container.log.Info(fmt.Sprintf("%s(%T) will be set to %s(%s.%s)",
-					interfaceBeanName, awareBean,
+					selectBean.Name, awareBean,
 					def.Name, def.Type.String(), filedName,
 				))
 			}
 		}
+
+		injectInfo := &InjectInfo{
+			Bean:      awareBean,
+			BeanName:  awareInfo.Name,
+			Type:      awareInfo.Type,
+			IsPtr:     awareInfo.IsPtr,
+			Anonymous: awareInfo.Anonymous,
+			Omitempty: awareInfo.Omitempty,
+		}
+		switch bean.Interface().(type) {
+		case Injector:
+			bean.Interface().(Injector).BeanInject(container, injectInfo)
+			if !ok {
+				ok = injectInfo.Bean != nil
+			}
+			awareBean = injectInfo.Bean
+		}
+
 		if !ok {
 			if awareInfo.Omitempty {
 				container.log.Warn(fmt.Sprintf("Omitempty: dependent bean %s not found for %s(%s.%s)",

@@ -1,5 +1,7 @@
 package di
 
+import "reflect"
+
 type (
 	// BeanName 返回beanName
 	BeanName interface {
@@ -24,6 +26,20 @@ type (
 	// PreInitializeWithContainer Bean实例依赖注入前
 	PreInitializeWithContainer interface {
 		PreInitialize(DI)
+	}
+
+	InjectInfo struct {
+		Bean        interface{}
+		BeanName    string
+		Type        reflect.Type
+		IsPtr       bool // 是否为结构指针
+		IsInterface bool // 是否为接口
+		Anonymous   bool // 是否为匿名字段
+		Omitempty   bool // 不存在依赖时则忽略注入
+	}
+	// Injector bean实例注入器
+	Injector interface {
+		BeanInject(di DI, info *InjectInfo)
 	}
 
 	// AfterPropertiesSet Bean实例注入完成
