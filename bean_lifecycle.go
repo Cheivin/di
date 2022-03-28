@@ -113,7 +113,8 @@ func (container *di) findBeanByType(beanType reflect.Type) []BeanWithName {
 	// 根据排序遍历beanName查找
 	for e := container.beanSort.Front(); e != nil; e = e.Next() {
 		findBeanName := e.Value.(string)
-		if prototype, ok := container.prototypeMap[findBeanName]; ok {
+
+		if prototype, ok := container.findBeanByName(findBeanName); ok {
 			if reflect.TypeOf(prototype).AssignableTo(beanType) {
 				container.log.Info(fmt.Sprintf("find interface %s implemented by %s(%T)",
 					beanType.String(), findBeanName, prototype,
