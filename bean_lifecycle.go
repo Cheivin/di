@@ -2,9 +2,10 @@ package di
 
 import (
 	"fmt"
-	"github.com/cheivin/di/van"
 	"reflect"
 	"unsafe"
+
+	"github.com/cheivin/di/van"
 )
 
 // wireValue 注入配置项

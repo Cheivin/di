@@ -20,33 +20,33 @@ type logger struct {
 }
 
 func stdLogger() Log {
-	return logger{
+	return &logger{
 		debugMode: false,
 		writer:    os.Stdout,
 		errWriter: os.Stderr,
 	}
 }
 
-func (l logger) DebugMode(b bool) {
+func (l *logger) DebugMode(b bool) {
 	l.debugMode = b
 }
 
-func (l logger) Debug(s string) {
+func (l *logger) Debug(s string) {
 	if !l.debugMode {
 		return
 	}
 	_, _ = l.writer.Write([]byte("[DI-DEBUG] : " + s + "\n"))
 }
 
-func (l logger) Info(s string) {
+func (l *logger) Info(s string) {
 	_, _ = l.writer.Write([]byte("[DI-INFO] : " + s + "\n"))
 }
 
-func (l logger) Warn(s string) {
+func (l *logger) Warn(s string) {
 	_, _ = l.errWriter.Write([]byte("[DI-WARN] : " + s + "\n"))
 }
 
-func (l logger) Fatal(s string) {
+func (l *logger) Fatal(s string) {
 	_, _ = l.errWriter.Write([]byte("[DI-FATAL] : " + s + "\n"))
 	os.Exit(1)
 }

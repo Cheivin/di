@@ -5,9 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/cheivin/di/van"
 	"reflect"
 	"runtime"
+
+	"github.com/cheivin/di/van"
 )
 
 type (
@@ -235,8 +236,8 @@ func (container *di) Serve(ctx context.Context) {
 	}
 	var cancel context.CancelFunc
 	container.ctx, cancel = context.WithCancel(ctx)
-	<-ctx.Done()
 	defer cancel()
+	<-ctx.Done()
 	container.destroyBeans()
 }
 

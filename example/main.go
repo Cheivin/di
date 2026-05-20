@@ -3,11 +3,12 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/cheivin/di"
 	"log"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/cheivin/di"
 )
 
 type (
