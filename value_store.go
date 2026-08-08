@@ -1,6 +1,10 @@
 package di
 
-import "reflect"
+import (
+	"os"
+	"reflect"
+	"strings"
+)
 
 // ValueStore 是配置存储的抽象接口，默认实现为 van.Van。
 // di 通过它读写配置项，配合 value 标签实现配置注入。
@@ -68,4 +72,40 @@ func (container *di) LoadProperties(prefix string, propertyType any) any {
 	bean := reflect.New(def.Type)
 	container.wireValue(bean.Elem(), def, prefix)
 	return bean.Elem().Interface()
+}
+
+// AutoMigrateEnv 读取所有环境变量并作为配置项注入。
+// key 中的下划线 _ 转换为点号 .（如 APP_PORT → app.port）。
+func (container *di) AutoMigrateEnv() DI {
+	container.SetPropertyMap(LoadEnvironment(strings.NewReplacer("_", "."), false))
+	return container
+}
+
+// LoadEnvironment 读取环境变量并返回 map。
+// replacer 对 key 做替换（如 _ → .）；trimPrefix 为 true 时去掉 prefix 命中的前缀。
+// prefix 为空时读取全部环境变量。
+//
+// 这是 AutoMigrateEnv 的底层构建块，也可独立使用：
+//
+//	envMap := di.LoadEnvironment(strings.NewReplacer("_", "."), true, "APP_")
+//	c.SetPropertyMap(envMap)
+func LoadEnvironment(replacer *strings.Replacer, trimPrefix bool, prefix ...string) map[string]any {
+	environ := os.Environ()
+	envMap := make(map[string]any, len(environ))
+	for _, env := range environ {
+		kv := strings.SplitN(env, "=", 2)
+		if ok, pfx := hasPrefix(kv[0], prefix); !ok {
+			continue
+		} else if trimPrefix {
+			kv[0] = strings.TrimPrefix(kv[0], pfx)
+		}
+		var property string
+		if replacer != nil {
+			property = replacer.Replace(kv[0])
+		} else {
+			property = kv[0]
+		}
+		envMap[property] = kv[1]
+	}
+	return envMap
 }

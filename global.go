@@ -2,8 +2,6 @@ package di
 
 import (
 	"context"
-	"os"
-	"strings"
 	"sync"
 )
 
@@ -105,30 +103,9 @@ func LoadProperties(prefix string, propertyType any) any {
 	return container().LoadProperties(prefix, propertyType)
 }
 
+// AutoMigrateEnv 读取所有环境变量注入全局容器配置（_ → .）。
 func AutoMigrateEnv() {
-	envMap := LoadEnvironment(strings.NewReplacer("_", "."), false)
-	SetPropertyMap(envMap)
-}
-
-func LoadEnvironment(replacer *strings.Replacer, trimPrefix bool, prefix ...string) map[string]any {
-	environ := os.Environ()
-	envMap := make(map[string]any, len(environ))
-	for _, env := range environ {
-		kv := strings.SplitN(env, "=", 2)
-		if ok, pfx := hasPrefix(kv[0], prefix); !ok {
-			continue
-		} else if trimPrefix {
-			kv[0] = strings.TrimPrefix(kv[0], pfx)
-		}
-		var property string
-		if replacer != nil {
-			property = replacer.Replace(kv[0])
-		} else {
-			property = kv[0]
-		}
-		envMap[property] = kv[1]
-	}
-	return envMap
+	container().AutoMigrateEnv()
 }
 
 func Load() {

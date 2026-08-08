@@ -2,6 +2,18 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [0.5.0] - 2026-08-08
+
+### Breaking Changes
+
+- **`DI` 接口新增 `AutoMigrateEnv() DI` 方法**：环境变量注入能力从全局函数提升为接口方法，独立容器实例（`di.New()`）也可直接调用。实现 `DI` 接口的外部类型需补充实现。
+
+### 变更
+
+- `LoadEnvironment` 从 `global.go` 移至 `value_store.go`（纯工具函数，不依赖全局容器）。
+- `AutoMigrateEnv` 全局函数改为转发到接口方法（行为不变）。
+- dio 的 `AutoMigrateEnv` 改为转发 `d.di.AutoMigrateEnv()`，消除与 di 的重复实现。
+
 ## [0.4.0] - 2026-08-08
 
 ### Breaking Changes

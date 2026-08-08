@@ -62,6 +62,9 @@ type DI interface {
 	// SetPropertyMap 批量设置配置项
 	SetPropertyMap(properties map[string]any) DI
 
+	// AutoMigrateEnv 读取所有环境变量注入配置（key 中 _ 转为 .）
+	AutoMigrateEnv() DI
+
 	// GetProperty 获取配置项值
 	GetProperty(key string) any
 
