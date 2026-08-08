@@ -12,6 +12,10 @@
 * [获取bean](bean/getbean.md)
 * [手动实例化](bean/instance.md)
 * [生命周期](bean/lifecycle.md)
+* [构造函数注入（ProvideFunc）](bean/gou-zao-han-shu-zhu-ru-providefunc.md)
+* [批量注入（slice / map）](bean/pi-liang-zhu-ru-slice-map.md)
+* [接口选择策略（BeanSelector）](bean/jie-kou-xuan-ze-ce-le-beanselector.md)
+* [循环依赖检测](bean/xun-huan-yi-lai-jian-ce.md)
 
 ## 标签 <a href="#tag" id="tag"></a>
 
@@ -29,3 +33,6 @@
 * [beanName生成策略](others/beanname-generate-rule.md)
 * [注入匿名字段](others/wire-anonymous-field.md)
 * [日志打印](others/log.md)
+* [错误处理](others/cuo-wu-chu-li.md)
+* [并发安全](others/bing-fa-an-quan.md)
+* [全局容器与 Reset](others/quan-ju-rong-qi-yu-reset.md)
