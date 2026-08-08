@@ -29,13 +29,16 @@ type (
 	}
 
 	InjectInfo struct {
-		Bean        interface{}
+		Bean        any
 		BeanName    string
 		Type        reflect.Type
 		IsPtr       bool // 是否为结构指针
 		IsInterface bool // 是否为接口
 		Anonymous   bool // 是否为匿名字段
 		Omitempty   bool // 不存在依赖时则忽略注入
+		IsSlice     bool // 是否为 slice
+		IsMap       bool // 是否为 map[string]T
+		ElemType    reflect.Type // slice/map 的元素类型
 	}
 	// Injector bean实例注入器
 	Injector interface {

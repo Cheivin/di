@@ -2,15 +2,19 @@ package di
 
 import (
 	"reflect"
-	"sort"
 	"strings"
 )
 
-func IsPtr(o interface{}) bool {
-	return reflect.TypeOf(o).Kind() == reflect.Ptr
+// IsPtr 判断值是否为指针类型。对 nil（无类型 interface{}）返回 false。
+func IsPtr(o any) bool {
+	t := reflect.TypeOf(o)
+	return t != nil && t.Kind() == reflect.Ptr
 }
 
-func GetBeanName(o interface{}) (name string) {
+// GetBeanName 推断 bean 名称：取类型名并将首字母小写。
+// 例如 *UserService → "userService"，*DB → "dB"。
+// o 可接受实例值或 reflect.Type；传入 nil 会 panic。
+func GetBeanName(o any) (name string) {
 	if t, ok := o.(reflect.Type); ok {
 		if t.Kind() == reflect.Ptr {
 			t = t.Elem()
@@ -24,15 +28,8 @@ func GetBeanName(o interface{}) (name string) {
 	return
 }
 
-func in(target string, array []string) bool {
-	sort.Strings(array)
-	index := sort.SearchStrings(array, target)
-	if index < len(array) && array[index] == target {
-		return true
-	}
-	return false
-}
-
+// hasPrefix 判断 prefix 是否以 array 中任一字符串为前缀。
+// 返回 (是否命中, 命中的前缀串)；array 为空时视为无条件命中。
 func hasPrefix(prefix string, array []string) (bool, string) {
 	if len(array) == 0 {
 		return true, ""

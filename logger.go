@@ -5,12 +5,16 @@ import (
 	"os"
 )
 
+// Log 是容器的日志接口。
+// 容器内部所有日志（包括 Fatal）都通过它输出。
+// v0.4.0 起 Fatal 签名由 string 改为 error，且实现应 panic 而非 os.Exit，
+// 以便调用方 recover 后用 errors.Is 判断具体错误。
 type Log interface {
 	DebugMode(bool)
 	Debug(string)
 	Info(string)
 	Warn(string)
-	Fatal(string)
+	Fatal(error)
 }
 
 type logger struct {
@@ -46,7 +50,7 @@ func (l *logger) Warn(s string) {
 	_, _ = l.errWriter.Write([]byte("[DI-WARN] : " + s + "\n"))
 }
 
-func (l *logger) Fatal(s string) {
-	_, _ = l.errWriter.Write([]byte("[DI-FATAL] : " + s + "\n"))
-	os.Exit(1)
+func (l *logger) Fatal(err error) {
+	_, _ = l.errWriter.Write([]byte("[DI-FATAL] : " + err.Error() + "\n"))
+	panic(err)
 }

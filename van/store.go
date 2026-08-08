@@ -7,15 +7,15 @@ import (
 
 type store struct {
 	separator string
-	tree      map[string]interface{}
+	tree      map[string]any
 }
 
 func newStore(separator string) *store {
-	return &store{separator: separator, tree: make(map[string]interface{})}
+	return &store{separator: separator, tree: make(map[string]any)}
 }
 
-func toCaseInsensitiveMap(value interface{}, separator string) map[string]interface{} {
-	m := make(map[string]interface{})
+func toCaseInsensitiveMap(value any, separator string) map[string]any {
+	m := make(map[string]any)
 
 	iter := reflect.ValueOf(value).MapRange()
 	for iter.Next() {
@@ -42,38 +42,37 @@ func toCaseInsensitiveMap(value interface{}, separator string) map[string]interf
 	return m
 }
 
-func copyStringMap(origin map[string]interface{}) map[string]interface{} {
-	m := make(map[string]interface{}, len(origin))
-	iter := reflect.ValueOf(origin).MapRange()
-	for iter.Next() {
-		key := iter.Key().String()
-		if isMap(iter.Value()) {
-			m[key] = copyStringMap(iter.Value().Interface().(map[string]interface{}))
+func copyStringMap(origin map[string]any) map[string]any {
+	m := make(map[string]any, len(origin))
+	for key, value := range origin {
+		if sub, ok := value.(map[string]any); ok {
+			m[key] = copyStringMap(sub)
 		} else {
-			m[key] = iter.Value().Interface()
+			m[key] = value
 		}
 	}
 	return m
 }
 
-func mergeStringMap(source map[string]interface{}, target map[string]interface{}) {
+func mergeStringMap(source map[string]any, target map[string]any) {
 	for sk, sv := range source {
 		tv, ok := target[sk]
 		if !ok {
 			target[sk] = sv
+			continue
+		}
+		tvm, tIsMap := tv.(map[string]any)
+		svm, sIsMap := sv.(map[string]any)
+		if tIsMap && sIsMap {
+			mergeStringMap(svm, tvm)
 		} else {
-			tvm := isMap(tv)
-			svm := isMap(sv)
-			if tvm && svm {
-				mergeStringMap(sv.(map[string]interface{}), tv.(map[string]interface{}))
-			} else if !tvm && !svm {
-				target[sk] = sv
-			}
+			// 类型冲突（如 string vs map）：新值覆盖旧值（原为静默丢弃）
+			target[sk] = sv
 		}
 	}
 }
 
-func deepSearchIfAbsent(tree map[string]interface{}, path []string) map[string]interface{} {
+func deepSearchIfAbsent(tree map[string]any, path []string) map[string]any {
 	if len(path) == 0 {
 		return tree
 	}
@@ -81,25 +80,25 @@ func deepSearchIfAbsent(tree map[string]interface{}, path []string) map[string]i
 	subPath := path[1:]
 	if sub, ok := tree[key]; !ok {
 		// map不存在则创建新map
-		emptyTree := make(map[string]interface{})
+		emptyTree := make(map[string]any)
 		tree[key] = emptyTree
 		return deepSearchIfAbsent(emptyTree, subPath)
 	} else {
-		subTree, ok := sub.(map[string]interface{})
+		subTree, ok := sub.(map[string]any)
 		if !ok {
 			// 强转失败则用新map代替
-			subTree = make(map[string]interface{})
+			subTree = make(map[string]any)
 			tree[key] = subTree
 		}
 		return deepSearchIfAbsent(subTree, subPath)
 	}
 }
 
-func deepSearch(v interface{}, path []string) interface{} {
+func deepSearch(v any, path []string) any {
 	if v == nil || len(path) == 0 {
 		return v
 	}
-	if tree, ok := v.(map[string]interface{}); !ok {
+	if tree, ok := v.(map[string]any); !ok {
 		if len(path) == 1 {
 			return v
 		}
@@ -111,7 +110,7 @@ func deepSearch(v interface{}, path []string) interface{} {
 	return nil
 }
 
-func (s *store) Set(key string, value interface{}) {
+func (s *store) Set(key string, value any) {
 	key = strings.ToLower(key)
 	if isMap(value) {
 		value = toCaseInsensitiveMap(value, s.separator)
@@ -124,19 +123,19 @@ func (s *store) Set(key string, value interface{}) {
 		tree[lastKey] = value
 	} else {
 		if isMap(sub) && isMap(value) {
-			mergeStringMap(value.(map[string]interface{}), sub.(map[string]interface{}))
+			mergeStringMap(value.(map[string]any), sub.(map[string]any))
 		} else {
 			tree[lastKey] = value
 		}
 	}
 }
 
-func (s *store) Get(key string) interface{} {
+func (s *store) Get(key string) any {
 	key = strings.ToLower(key)
 	keyPath := strings.Split(key, s.separator)
 	return deepSearch(s.tree, keyPath)
 }
 
-func (s *store) GetAll() map[string]interface{} {
+func (s *store) GetAll() map[string]any {
 	return s.tree
 }

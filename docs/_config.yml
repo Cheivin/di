@@ -1,0 +1,24 @@
+title: di 文档
+description: Go 依赖注入框架 di 的官方文档
+theme: jekyll-theme-cayman
+lang: zh-CN
+baseurl: "/di"
+url: "https://cheivin.github.io"
+
+plugins:
+  - jekyll-readme-index
+
+readme_index:
+  enabled: true
+  remove_originals: true
+
+exclude:
+  - examples
+  - van
+
+defaults:
+  - scope:
+      path: ""
+      type: pages
+    values:
+      layout: default

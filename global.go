@@ -4,81 +4,105 @@ import (
 	"context"
 	"os"
 	"strings"
+	"sync"
 )
 
-var g DI
+var (
+	gMu sync.Mutex
+	g   DI
+)
 
-func init() {
-	g = New()
-}
-
-func RegisterBean(bean interface{}) DI {
-	return g.RegisterBean(bean)
-}
-
-func RegisterNamedBean(name string, bean interface{}) DI {
-	return g.RegisterNamedBean(name, bean)
-}
-
-func Provide(prototype interface{}) DI {
-	return g.Provide(prototype)
-}
-
-func ProvideNamedBean(beanName string, prototype interface{}) DI {
-	return g.ProvideNamedBean(beanName, prototype)
-}
-
-func GetBean(beanName string) (bean interface{}, ok bool) {
-	return g.GetBean(beanName)
-}
-
-func GetByType(beanType interface{}) (bean interface{}, ok bool) {
-	return g.GetByType(beanType)
-}
-
-func GetByTypeAll(beanType interface{}) (beans []BeanWithName) {
-	return g.GetByTypeAll(beanType)
-}
-
-func NewBean(beanType interface{}) (bean interface{}) {
-	return g.NewBean(beanType)
-}
-
-func NewBeanByName(beanName string) (bean interface{}) {
-	return g.NewBeanByName(beanName)
-}
-
-func UseValueStore(v ValueStore) DI {
-	g.UseValueStore(v)
+// container 懒初始化并返回全局容器实例。
+// 未调用任何全局函数前不创建容器，首次访问时创建。
+func container() DI {
+	gMu.Lock()
+	defer gMu.Unlock()
+	if g == nil {
+		g = New()
+	}
 	return g
 }
 
+// Reset 将全局容器重置为未初始化状态（清空所有 bean 与配置，下次调用时懒创建）。
+// 仅用于测试隔离（全局容器有状态残留），生产代码不应调用。
+func Reset() {
+	gMu.Lock()
+	defer gMu.Unlock()
+	g = nil
+}
+
+func RegisterBean(bean any) DI {
+	return container().RegisterBean(bean)
+}
+
+func RegisterNamedBean(name string, bean any) DI {
+	return container().RegisterNamedBean(name, bean)
+}
+
+func Provide(prototype any) DI {
+	return container().Provide(prototype)
+}
+
+func ProvideNamedBean(beanName string, prototype any) DI {
+	return container().ProvideNamedBean(beanName, prototype)
+}
+
+func ProvideFunc(fn any) DI {
+	return container().ProvideFunc(fn)
+}
+
+func GetBean(beanName string) (bean any, ok bool) {
+	return container().GetBean(beanName)
+}
+
+func GetByType(beanType any) (bean any, ok bool) {
+	return container().GetByType(beanType)
+}
+
+func GetByTypeAll(beanType any) (beans []BeanWithName) {
+	return container().GetByTypeAll(beanType)
+}
+
+func NewBean(beanType any) (bean any) {
+	return container().NewBean(beanType)
+}
+
+func NewBeanByName(beanName string) (bean any) {
+	return container().NewBeanByName(beanName)
+}
+
+func UseValueStore(v ValueStore) DI {
+	c := container()
+	c.UseValueStore(v)
+	return c
+}
+
 func Property() ValueStore {
-	return g.Property()
+	return container().Property()
 }
 
-func SetDefaultProperty(key string, value interface{}) DI {
-	return g.SetDefaultProperty(key, value)
+func SetDefaultProperty(key string, value any) DI {
+	return container().SetDefaultProperty(key, value)
 }
 
-func SetDefaultPropertyMap(properties map[string]interface{}) DI {
-	return g.SetDefaultPropertyMap(properties)
+func SetDefaultPropertyMap(properties map[string]any) DI {
+	return container().SetDefaultPropertyMap(properties)
 }
 
-func SetProperty(key string, value interface{}) DI {
-	return g.SetProperty(key, value)
+func SetProperty(key string, value any) DI {
+	return container().SetProperty(key, value)
 }
 
-func SetPropertyMap(properties map[string]interface{}) DI {
-	return g.SetPropertyMap(properties)
+func SetPropertyMap(properties map[string]any) DI {
+	return container().SetPropertyMap(properties)
 }
 
-func GetProperty(key string) interface{} {
-	return g.GetProperty(key)
+func GetProperty(key string) any {
+	return container().GetProperty(key)
 }
 
-func LoadProperties(prefix string, propertyType interface{}) interface{} {
-	return g.LoadProperties(prefix, propertyType)
+func LoadProperties(prefix string, propertyType any) any {
+	return container().LoadProperties(prefix, propertyType)
 }
 
 func AutoMigrateEnv() {
@@ -86,9 +110,9 @@ func AutoMigrateEnv() {
 	SetPropertyMap(envMap)
 }
 
-func LoadEnvironment(replacer *strings.Replacer, trimPrefix bool, prefix ...string) map[string]interface{} {
+func LoadEnvironment(replacer *strings.Replacer, trimPrefix bool, prefix ...string) map[string]any {
 	environ := os.Environ()
-	envMap := make(map[string]interface{}, len(environ))
+	envMap := make(map[string]any, len(environ))
 	for _, env := range environ {
 		kv := strings.SplitN(env, "=", 2)
 		if ok, pfx := hasPrefix(kv[0], prefix); !ok {
@@ -108,14 +132,14 @@ func LoadEnvironment(replacer *strings.Replacer, trimPrefix bool, prefix ...stri
 }
 
 func Load() {
-	g.Load()
+	container().Load()
 }
 
 func Serve(ctx context.Context) {
-	g.Serve(ctx)
+	container().Serve(ctx)
 }
 
 func LoadAndServ(ctx context.Context) {
-	g.Load()
-	g.Serve(ctx)
+	container().Load()
+	container().Serve(ctx)
 }

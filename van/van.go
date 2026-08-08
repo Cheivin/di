@@ -10,15 +10,15 @@ func New() *Van {
 	return &Van{defaults: newStore(separator), override: newStore(separator)}
 }
 
-func (v *Van) SetDefault(key string, value interface{}) {
+func (v *Van) SetDefault(key string, value any) {
 	v.defaults.Set(key, value)
 }
 
-func (v *Van) Set(key string, value interface{}) {
+func (v *Van) Set(key string, value any) {
 	v.override.Set(key, value)
 }
 
-func (v *Van) Get(key string) (val interface{}) {
+func (v *Van) Get(key string) (val any) {
 	val = v.override.Get(key)
 	if val == nil {
 		val = v.defaults.Get(key)
@@ -26,7 +26,7 @@ func (v *Van) Get(key string) (val interface{}) {
 	return val
 }
 
-func (v *Van) GetAll() map[string]interface{} {
+func (v *Van) GetAll() map[string]any {
 	mergeMap := copyStringMap(v.override.GetAll())
 	mergeStringMap(v.defaults.GetAll(), mergeMap)
 	return mergeMap
