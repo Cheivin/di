@@ -26,6 +26,7 @@ type (
 		ctx               context.Context
 		mu                sync.RWMutex // 保护 beanDefinitionMap/prototypeMap/beanMap/beanSort
 		selector          BeanSelector
+		circularCheck     bool // 是否在 Load 时检测循环依赖（默认关闭，指针循环依赖可正常注入）
 	}
 )
 
@@ -103,6 +104,15 @@ func (container *di) parseBeanType(beanType any) (prototype reflect.Type, beanNa
 // DebugMode 开启/关闭 debug 日志。
 func (container *di) DebugMode(enable bool) DI {
 	container.log.DebugMode(enable)
+	return container
+}
+
+// WithCircularCheck 开启/关闭循环依赖检测。
+// 默认关闭：di 的两阶段设计（先全部实例化、再逐个注入）天然支持指针循环依赖，
+// 如 A.B.A == A。开启后，Load 时会对 aware 依赖图做拓扑检测，发现环则 panic。
+// 适用于希望禁止循环依赖、保证依赖关系为 DAG 的严格场景。
+func (container *di) WithCircularCheck(enable bool) DI {
+	container.circularCheck = enable
 	return container
 }
 
@@ -366,11 +376,13 @@ func (container *di) Load() {
 	}
 
 	container.loaded = true
-	// 注入前先做循环依赖检测，避免运行期未定义行为。
-	// 检测失败时还原 loaded，允许调用方 recover 后修正依赖并重新 Load。
-	if err := container.checkCircularDependency(); err != nil {
-		container.loaded = false
-		panic(err)
+	// 循环依赖检测为 opt-in：默认关闭（指针循环依赖可正常注入）。
+	// 仅当显式 WithCircularCheck(true) 时才检测，失败还原 loaded 允许重试。
+	if container.circularCheck {
+		if err := container.checkCircularDependency(); err != nil {
+			container.loaded = false
+			panic(err)
+		}
 	}
 	container.initializeBeans()
 	container.processBeans()

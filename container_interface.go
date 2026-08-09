@@ -11,6 +11,9 @@ type DI interface {
 	// WithBeanSelector 设置接口多实现时的选择策略，默认 LastRegistered。
 	WithBeanSelector(s BeanSelector) DI
 
+	// WithCircularCheck 开启/关闭循环依赖检测，默认关闭（指针循环依赖可正常注入）
+	WithCircularCheck(enable bool) DI
+
 	// Log 设置容器的日志实现
 	Log(log Log) DI
 

@@ -2,6 +2,15 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [0.6.0] - 2026-08-09
+
+### Breaking Changes
+
+- **循环依赖检测改为 opt-in（默认关闭）**：v0.3.1 至 v0.5.0 曾默认开启检测，但 di 的两阶段设计（先全部实例化、再逐个注入）天然支持指针循环依赖（如 `A.B.A == A`），默认检测属于回归 bug。现改为：
+  - 默认行为：指针循环依赖正常注入（恢复 v0.2.0 行为）
+  - `WithCircularCheck(true)` 显式开启检测（适用于希望保证依赖关系为 DAG 的严格场景）
+  - `DI` 接口新增 `WithCircularCheck(enable bool) DI` 方法
+
 ## [0.5.0] - 2026-08-08
 
 ### Breaking Changes
