@@ -12,6 +12,7 @@
 - ✅ 按名称 / 类型获取 bean，按类型手动实例化
 - ✅ **slice / map 批量注入**：收集同接口的所有实现
 - ✅ **接口歧义策略**：`BeanSelector` / `Primary` 多实现选择
+- ✅ **只读管理/诊断 API**：`GetBeanNames` / `DescribeBean` / `GetBeanDependencies`（v0.6.2 新增）
 - ✅ 配置项注入（`value` 标签），支持类型自动转换
 - ✅ 匿名字段注入
 - ✅ **完整生命周期管理**（构造 → 注入前 → 注入后 → 初始化 → 销毁）
@@ -58,7 +59,7 @@ func main() {
 - [注册实例](bean/registerbean) — RegisterBean 手动注册
 - [注册结构体](bean/providebean) — Provide 原型注册
 - [构造函数注入](bean/providefunc) — ProvideFunc 工厂注入（v0.4.0 新增）
-- [获取 bean](bean/getbean) — GetBean / GetByType
+- [获取 bean](bean/getbean) — GetBean / GetByType / 管理诊断 API（v0.6.2 新增）
 - [批量注入](bean/slice-inject) — slice/map 收集同类型 bean（v0.4.0 新增）
 - [接口选择策略](bean/selector) — BeanSelector / Primary（v0.4.0 新增）
 - [生命周期](bean/lifecycle) — 完整生命周期回调

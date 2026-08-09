@@ -95,6 +95,59 @@ for _, h := range handlers {
 
 用于需要遍历所有实现（如插件、中间件、事件处理器）的场景。也可以直接在字段上用 [slice 批量注入](slice-inject) 让容器自动收集。
 
+## 管理诊断 API（v0.6.2 新增）
+
+除获取 bean 外，容器还提供一组只读的管理/诊断 API，用于统计 bean 数、描述 bean 定义、排查依赖关系：
+
+| 方法 | 返回 | 说明 |
+|------|------|------|
+| `GetBeanNames()` | `[]string` | 所有 bean 名称（按注册顺序，含工厂 bean） |
+| `HasBeanType(beanType)` | `bool` | 是否已注册指定类型的 bean（实例/原型/工厂均可） |
+| `DescribeBean(name)` | `(BeanDescription, bool)` | bean 定义的只读描述 |
+| `GetBeanDependencies(name)` | `([]string, bool)` | 依赖的其他 bean 名称列表（按名称排序） |
+
+### GetBeanNames 统计 bean
+
+```go
+names := di.GetBeanNames()
+fmt.Println(len(names)) // 容器内 bean 总数
+```
+
+### HasBeanType 判断类型是否已注册
+
+```go
+if di.HasBeanType(&UserService{}) {
+    // 该类型已有 bean（实例/原型/工厂均可命中）
+}
+```
+
+`beanType` 的传参规则与 `GetByType` 一致（值类型或类型化 nil 指针）。
+
+### DescribeBean / GetBeanDependencies 描述定义
+
+```go
+desc, ok := di.DescribeBean("userService")
+if ok {
+    fmt.Println(desc.Name, desc.Type, desc.Factory) // userService main.UserService false
+    for _, dep := range desc.Dependencies {
+        fmt.Println(dep.Field, "->", dep.Name) // DB -> db
+    }
+    for _, v := range desc.Values {
+        fmt.Println(v.Field, "=", v.Name) // Port = server.port
+    }
+}
+
+deps, ok := di.GetBeanDependencies("userService") // ["db"]
+```
+
+`BeanDescription` 包含 bean 名称、类型、是否工厂模式，以及 aware 依赖（`Dependencies`）与 value 配置注入（`Values`）列表；`Dependency` 含字段名、注入的 bean 名或配置项 key、类型与是否可选（`omitempty`）。
+
+注意事项：
+
+- **定义信息仅原型（`Provide`）与工厂（`ProvideFunc`）bean 有**；直接注册的实例（`RegisterBean`）不经过定义解析，`DescribeBean` 返回 `ok=false`。
+- `GetBeanDependencies` 只包含命名注入（`aware` 指定名称或按类型推断出名称的）；slice/map 按类型收集的注入不包含。
+- **基于实例的查询（`GetBean`/`GetByType`/`GetByTypeAll`）在 `Serve` 退出、bean 销毁后返回空**；基于定义的查询（`GetBeanNames`/`DescribeBean`/`GetBeanDependencies`）不受影响，可放心用于停机后的诊断。
+
 ## NewBean / NewBeanByName 每次新建
 
 ```go
