@@ -23,7 +23,7 @@ func buildCandidates() []BeanWithName {
 
 func TestSelector_LastRegistered(t *testing.T) {
 	c := buildCandidates()
-	idx, err := LastRegistered{}.Select(c, reflect.TypeOf((*any)(nil)).Elem())
+	idx, err := LastRegistered{}.Select(c, reflect.TypeFor[any]())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -34,7 +34,7 @@ func TestSelector_LastRegistered(t *testing.T) {
 
 func TestSelector_FirstRegistered(t *testing.T) {
 	c := buildCandidates()
-	idx, err := FirstRegistered{}.Select(c, reflect.TypeOf((*any)(nil)).Elem())
+	idx, err := FirstRegistered{}.Select(c, reflect.TypeFor[any]())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -45,7 +45,7 @@ func TestSelector_FirstRegistered(t *testing.T) {
 
 func TestSelector_PrimaryFirst_HitPrimary(t *testing.T) {
 	c := buildCandidates()
-	idx, err := PrimaryFirst{}.Select(c, reflect.TypeOf((*any)(nil)).Elem())
+	idx, err := PrimaryFirst{}.Select(c, reflect.TypeFor[any]())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -59,7 +59,7 @@ func TestSelector_PrimaryFirst_NoPrimaryFallback(t *testing.T) {
 		{Name: "a", Bean: &normalBean{"a"}},
 		{Name: "b", Bean: &normalBean{"b"}},
 	}
-	idx, err := PrimaryFirst{}.Select(c, reflect.TypeOf((*any)(nil)).Elem())
+	idx, err := PrimaryFirst{}.Select(c, reflect.TypeFor[any]())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -74,7 +74,7 @@ func TestSelector_PrimaryFirst_MultiplePrimaryError(t *testing.T) {
 		{Name: "a", Bean: &primaryBean{"a"}},
 		{Name: "b", Bean: &primaryBean{"b"}},
 	}
-	_, err := PrimaryFirst{}.Select(c, reflect.TypeOf((*any)(nil)).Elem())
+	_, err := PrimaryFirst{}.Select(c, reflect.TypeFor[any]())
 	if err == nil {
 		t.Fatal("want error for multiple primary, got nil")
 	}
@@ -85,7 +85,7 @@ func TestSelector_PrimaryFirst_MultiplePrimaryError(t *testing.T) {
 
 func TestSelector_ErrorOnAmbiguous_OneCandidate(t *testing.T) {
 	c := []BeanWithName{{Name: "only", Bean: &normalBean{"only"}}}
-	idx, err := ErrorOnAmbiguous{}.Select(c, reflect.TypeOf((*any)(nil)).Elem())
+	idx, err := ErrorOnAmbiguous{}.Select(c, reflect.TypeFor[any]())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -96,7 +96,7 @@ func TestSelector_ErrorOnAmbiguous_OneCandidate(t *testing.T) {
 
 func TestSelector_ErrorOnAmbiguous_MultipleError(t *testing.T) {
 	c := buildCandidates()
-	_, err := ErrorOnAmbiguous{}.Select(c, reflect.TypeOf((*any)(nil)).Elem())
+	_, err := ErrorOnAmbiguous{}.Select(c, reflect.TypeFor[any]())
 	if err == nil {
 		t.Fatal("want error for ambiguous, got nil")
 	}
@@ -113,8 +113,8 @@ type animal interface {
 type dog struct{}
 type cat struct{}
 
-func (dog) Sound() string { return "woof" }
-func (cat) Sound() string { return "meow" }
+func (dog) Sound() string   { return "woof" }
+func (cat) Sound() string   { return "meow" }
 func (cat) IsPrimary() bool { return true } // cat 是首选
 
 type zoo struct {

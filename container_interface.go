@@ -38,8 +38,24 @@ type DI interface {
 	// GetByType 按类型获取单个 bean（返回第一个匹配项）
 	GetByType(beanType any) (bean any, ok bool)
 
-	// GetByTypeAll 按类型获取所有匹配的 bean，按注册顺序返回
+	// GetByTypeAll 按类型获取所有匹配的 bean（实例），按注册顺序返回。
+	// 注意：Serve 退出销毁 bean 后实例已从容器移除，基于实例的查询返回空；
+	// 基于定义的查询（GetBeanNames/DescribeBean/GetBeanDependencies）不受影响
 	GetByTypeAll(beanType any) (beans []BeanWithName)
+
+	// GetBeanNames 返回所有已注册 bean 的名称（按注册顺序，含工厂 bean）。
+	// 供管理/诊断场景使用（如统计容器 bean 数、描述容器内容）
+	GetBeanNames() []string
+
+	// HasBeanType 判断容器中是否已注册指定类型的 bean（实例/原型/工厂 bean 均可）。
+	// beanType 可传值类型或指针类型，Load 前后均可用
+	HasBeanType(beanType any) bool
+
+	// DescribeBean 返回 bean 定义的只读描述（仅原型/工厂 bean 有定义）；不存在时返回 ok=false
+	DescribeBean(beanName string) (desc BeanDescription, ok bool)
+
+	// GetBeanDependencies 返回 bean 依赖的其他 bean 名称列表（命名 aware 注入，按名称排序）
+	GetBeanDependencies(beanName string) (deps []string, ok bool)
 
 	// NewBean 按类型创建新实例（非容器单例），走完整生命周期
 	NewBean(beanType any) (bean any)

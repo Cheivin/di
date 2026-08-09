@@ -21,12 +21,12 @@ type (
 	aware struct {
 		Name        string
 		Type        reflect.Type
-		IsPtr       bool // 是否为结构指针
-		IsInterface bool // 是否为接口
-		Anonymous   bool // 是否为匿名字段
-		Omitempty   bool // 不存在依赖时则忽略注入
-		IsSlice     bool // 是否为 slice，收集所有可赋值给 ElemType 的 bean
-		IsMap       bool // 是否为 map[string]T，以 beanName 为 key 收集
+		IsPtr       bool         // 是否为结构指针
+		IsInterface bool         // 是否为接口
+		Anonymous   bool         // 是否为匿名字段
+		Omitempty   bool         // 不存在依赖时则忽略注入
+		IsSlice     bool         // 是否为 slice，收集所有可赋值给 ElemType 的 bean
+		IsMap       bool         // 是否为 map[string]T，以 beanName 为 key 收集
 		ElemType    reflect.Type // slice/map 的元素类型
 	}
 )
@@ -38,7 +38,7 @@ func (container *di) newDefinition(beanName string, prototype reflect.Type) defi
 	for i := 0; i < prototype.NumField(); i++ {
 		field := prototype.Field(i)
 		switch field.Type.Kind() {
-		case reflect.Ptr, reflect.Interface, reflect.Struct:
+		case reflect.Pointer, reflect.Interface, reflect.Struct:
 			if awareName, ok := field.Tag.Lookup("aware"); ok {
 				omitempty := false
 				switch {
@@ -51,7 +51,7 @@ func (container *di) newDefinition(beanName string, prototype reflect.Type) defi
 				}
 
 				switch field.Type.Kind() {
-				case reflect.Ptr:
+				case reflect.Pointer:
 					if reflect.Interface == field.Type.Elem().Kind() {
 						panic(fmt.Errorf("%w: aware bean not accept interface pointer for %s.%s", ErrDefinition, prototype.String(), field.Name))
 					}
@@ -102,36 +102,36 @@ func (container *di) newDefinition(beanName string, prototype reflect.Type) defi
 						Anonymous:   field.Anonymous,
 						Omitempty:   omitempty,
 					}
-			case reflect.Struct:
-				panic(fmt.Errorf("%w: aware bean not accept struct for %s.%s", ErrDefinition, prototype.String(), field.Name))
+				case reflect.Struct:
+					panic(fmt.Errorf("%w: aware bean not accept struct for %s.%s", ErrDefinition, prototype.String(), field.Name))
+				}
 			}
-		}
-	case reflect.Slice, reflect.Map:
-		if awareName, ok := field.Tag.Lookup("aware"); ok {
-			// 解析元素类型
-			elemType := field.Type.Elem()
-			// map 必须是 map[string]T
-			isMap := field.Type.Kind() == reflect.Map
-			if isMap && field.Type.Key().Kind() != reflect.String {
-				panic(fmt.Errorf("%w: aware map key must be string for %s.%s", ErrDefinition, prototype.String(), field.Name))
+		case reflect.Slice, reflect.Map:
+			if awareName, ok := field.Tag.Lookup("aware"); ok {
+				// 解析元素类型
+				elemType := field.Type.Elem()
+				// map 必须是 map[string]T
+				isMap := field.Type.Kind() == reflect.Map
+				if isMap && field.Type.Key().Kind() != reflect.String {
+					panic(fmt.Errorf("%w: aware map key must be string for %s.%s", ErrDefinition, prototype.String(), field.Name))
+				}
+				// omitempty 解析（slice/map 的 awareName 不影响行为，靠类型收集）
+				omitempty := false
+				switch {
+				case strings.EqualFold(awareName, "omitempty"):
+					omitempty = true
+				case strings.HasSuffix(awareName, ",omitempty"):
+					omitempty = true
+				}
+				awareMap[field.Name] = aware{
+					Type:      field.Type,
+					ElemType:  elemType,
+					IsSlice:   !isMap,
+					IsMap:     isMap,
+					Omitempty: omitempty,
+				}
 			}
-			// omitempty 解析（slice/map 的 awareName 不影响行为，靠类型收集）
-			omitempty := false
-			switch {
-			case strings.EqualFold(awareName, "omitempty"):
-				omitempty = true
-			case strings.HasSuffix(awareName, ",omitempty"):
-				omitempty = true
-			}
-			awareMap[field.Name] = aware{
-				Type:      field.Type,
-				ElemType:  elemType,
-				IsSlice:   !isMap,
-				IsMap:     isMap,
-				Omitempty: omitempty,
-			}
-		}
-	case reflect.String, reflect.Bool,
+		case reflect.String, reflect.Bool,
 			reflect.Float64, reflect.Float32,
 			reflect.Int, reflect.Int64, reflect.Int32, reflect.Int16, reflect.Int8,
 			reflect.Uint, reflect.Uint64, reflect.Uint32, reflect.Uint16, reflect.Uint8:
@@ -180,16 +180,16 @@ func (container *di) getValueDefinition(prototype reflect.Type) definition {
 
 // 匿名结构体字段不能实现的生命周期接口（实现会导致方法被意外提升）
 var anonymousForbiddenInterfaces = []reflect.Type{
-	reflect.TypeOf((*BeanConstruct)(nil)).Elem(),
-	reflect.TypeOf((*BeanConstructWithContainer)(nil)).Elem(),
-	reflect.TypeOf((*PreInitialize)(nil)).Elem(),
-	reflect.TypeOf((*PreInitializeWithContainer)(nil)).Elem(),
-	reflect.TypeOf((*AfterPropertiesSet)(nil)).Elem(),
-	reflect.TypeOf((*AfterPropertiesSetWithContainer)(nil)).Elem(),
-	reflect.TypeOf((*Initialized)(nil)).Elem(),
-	reflect.TypeOf((*InitializedWithContainer)(nil)).Elem(),
-	reflect.TypeOf((*Disposable)(nil)).Elem(),
-	reflect.TypeOf((*DisposableWithContainer)(nil)).Elem(),
+	reflect.TypeFor[BeanConstruct](),
+	reflect.TypeFor[BeanConstructWithContainer](),
+	reflect.TypeFor[PreInitialize](),
+	reflect.TypeFor[PreInitializeWithContainer](),
+	reflect.TypeFor[AfterPropertiesSet](),
+	reflect.TypeFor[AfterPropertiesSetWithContainer](),
+	reflect.TypeFor[Initialized](),
+	reflect.TypeFor[InitializedWithContainer](),
+	reflect.TypeFor[Disposable](),
+	reflect.TypeFor[DisposableWithContainer](),
 }
 
 // checkAnonymousFieldBean 检查匿名字段不能实现的接口

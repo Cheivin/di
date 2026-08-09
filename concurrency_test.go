@@ -14,8 +14,8 @@ type concService struct {
 	DB *concDB `aware:""`
 }
 
-func (concDB) BeanName() string  { return "concDB" }
-func (*concDB) BeanConstruct()   {}
+func (concDB) BeanName() string { return "concDB" }
+func (*concDB) BeanConstruct()  {}
 
 // TestConcurrent_GetBean Load 后多 goroutine 并发读，-race 下不应报错
 func TestConcurrent_GetBean(t *testing.T) {
@@ -24,10 +24,8 @@ func TestConcurrent_GetBean(t *testing.T) {
 	c.Load()
 
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 50 {
+		wg.Go(func() {
 			bean, ok := c.GetBean("concDB")
 			if !ok {
 				t.Error("expected concDB found")
@@ -35,7 +33,7 @@ func TestConcurrent_GetBean(t *testing.T) {
 			if bean == nil {
 				t.Error("expected non-nil bean")
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -47,15 +45,13 @@ func TestConcurrent_GetByType(t *testing.T) {
 	c.Load()
 
 	var wg sync.WaitGroup
-	for i := 0; i < 50; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 50 {
+		wg.Go(func() {
 			_, ok := c.GetByType(&concDB{})
 			if !ok {
 				t.Error("expected GetByType ok")
 			}
-		}()
+		})
 	}
 	wg.Wait()
 }
@@ -69,7 +65,7 @@ func TestConcurrent_RegisterAfterLoad(t *testing.T) {
 
 	var wg sync.WaitGroup
 	// 并发写：动态注册新 bean
-	for i := 0; i < 20; i++ {
+	for i := range 20 {
 		wg.Add(1)
 		go func(n int) {
 			defer wg.Done()
@@ -78,20 +74,16 @@ func TestConcurrent_RegisterAfterLoad(t *testing.T) {
 		}(i)
 	}
 	// 并发读：range beanMap
-	for i := 0; i < 20; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 20 {
+		wg.Go(func() {
 			_ = c.GetByTypeAll(&concDB{})
-		}()
+		})
 	}
 	// 并发读：按名查
-	for i := 0; i < 20; i++ {
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+	for range 20 {
+		wg.Go(func() {
 			_, _ = c.GetBean("init")
-		}()
+		})
 	}
 	wg.Wait()
 }

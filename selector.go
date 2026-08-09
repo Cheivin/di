@@ -3,6 +3,7 @@ package di
 import (
 	"fmt"
 	"reflect"
+	"strings"
 )
 
 // BeanSelector 在一个接口/类型有多个候选实现时决定选中哪个。
@@ -61,12 +62,13 @@ type ErrorOnAmbiguous struct{}
 
 func (ErrorOnAmbiguous) Select(candidates []BeanWithName, targetType reflect.Type) (int, error) {
 	if len(candidates) > 1 {
-		names := candidates[0].Name
+		var names strings.Builder
+		names.WriteString(candidates[0].Name)
 		for i := 1; i < len(candidates); i++ {
-			names += ", " + candidates[i].Name
+			names.WriteString(", " + candidates[i].Name)
 		}
 		return -1, fmt.Errorf("%w: ambiguous beans for %s (%s); use named injection or @Primary",
-			ErrBean, targetType.String(), names)
+			ErrBean, targetType.String(), names.String())
 	}
 	return 0, nil
 }

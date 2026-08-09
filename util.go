@@ -8,7 +8,7 @@ import (
 // IsPtr 判断值是否为指针类型。对 nil（无类型 interface{}）返回 false。
 func IsPtr(o any) bool {
 	t := reflect.TypeOf(o)
-	return t != nil && t.Kind() == reflect.Ptr
+	return t != nil && t.Kind() == reflect.Pointer
 }
 
 // GetBeanName 推断 bean 名称：取类型名并将首字母小写。
@@ -16,7 +16,7 @@ func IsPtr(o any) bool {
 // o 可接受实例值或 reflect.Type；传入 nil 会 panic。
 func GetBeanName(o any) (name string) {
 	if t, ok := o.(reflect.Type); ok {
-		if t.Kind() == reflect.Ptr {
+		if t.Kind() == reflect.Pointer {
 			t = t.Elem()
 		}
 		name = t.Name()

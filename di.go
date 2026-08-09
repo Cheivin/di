@@ -16,9 +16,9 @@ import (
 type (
 	di struct {
 		log               Log
-		beanDefinitionMap map[string]definition  // Name:bean定义
-		prototypeMap      map[string]any // Name:初始化的bean
-		beanMap           map[string]any // Name:bean实例
+		beanDefinitionMap map[string]definition // Name:bean定义
+		prototypeMap      map[string]any        // Name:初始化的bean
+		beanMap           map[string]any        // Name:bean实例
 		loaded            bool
 		unsafe            bool
 		valueStore        ValueStore
@@ -184,7 +184,7 @@ func (container *di) ProvideFunc(fn any) DI {
 		return container
 	}
 	returnType := ft.Out(0)
-	if returnType.Kind() != reflect.Ptr {
+	if returnType.Kind() != reflect.Pointer {
 		container.log.Fatal(fmt.Errorf("%w: ProvideFunc must return a pointer, got %s", ErrBean, returnType.String()))
 		return container
 	}
@@ -271,7 +271,7 @@ func (container *di) GetBean(beanName string) (bean any, ok bool) {
 
 // getAllByType 按类型查找 bean。beanType 接受值类型或指针类型（如 T{} 或 (*T)(nil)）。
 // limitOne 为 true 时找到第一个即返回（GetByType 使用）。
-// 线程安全（读锁）。
+// 按注册顺序（beanSort）返回。线程安全（读锁）。
 func (container *di) getAllByType(beanType any, limitOne bool) (beans []BeanWithName) {
 	// 空/nil 参数直接返回空
 	t := reflect.TypeOf(beanType)
@@ -279,7 +279,7 @@ func (container *di) getAllByType(beanType any, limitOne bool) (beans []BeanWith
 		return
 	}
 	var typeValue reflect.Type
-	if t.Kind() == reflect.Ptr {
+	if t.Kind() == reflect.Pointer {
 		typeValue = t.Elem()
 		if typeValue.Kind() == reflect.Struct {
 			typeValue = reflect.PtrTo(typeValue)
@@ -289,7 +289,12 @@ func (container *di) getAllByType(beanType any, limitOne bool) (beans []BeanWith
 	}
 	container.mu.RLock()
 	defer container.mu.RUnlock()
-	for name, bean := range container.beanMap {
+	// 按注册顺序（beanSort）遍历，保证返回顺序确定（遍历 map 的顺序是随机的）
+	for _, name := range container.beanSort {
+		bean, ok := container.beanMap[name]
+		if !ok {
+			continue
+		}
 		if reflect.TypeOf(bean).AssignableTo(typeValue) {
 			beans = append(beans, BeanWithName{
 				Name: name,
@@ -317,6 +322,53 @@ func (container *di) GetByType(beanType any) (any, bool) {
 // GetByTypeAll 按类型获取所有匹配的 bean（含名称），按注册顺序返回。
 func (container *di) GetByTypeAll(beanType any) (beans []BeanWithName) {
 	return container.getAllByType(beanType, false)
+}
+
+// GetBeanNames 返回所有已注册 bean 的名称（按注册顺序，含工厂 bean）。
+func (container *di) GetBeanNames() []string {
+	return withRLock(container, func() []string {
+		return slices.Clone(container.beanSort)
+	})
+}
+
+// HasBeanType 判断容器中是否已注册指定类型的 bean（实例/原型/工厂 bean 均可）。
+// beanType 可传值类型或指针类型（如 HasBeanType(User{}) 或 HasBeanType((*User)(nil))）。
+// 线程安全（读锁）。
+func (container *di) HasBeanType(beanType any) bool {
+	t := reflect.TypeOf(beanType)
+	if t == nil {
+		return false
+	}
+	// 归一化为指针类型（与 getAllByType 一致）：值类型取 *T，指针类型取 T 或 *T，接口类型保持原样
+	var typeValue reflect.Type
+	if t.Kind() == reflect.Pointer {
+		typeValue = t.Elem()
+		if typeValue.Kind() == reflect.Struct {
+			typeValue = reflect.PtrTo(typeValue)
+		}
+	} else {
+		typeValue = reflect.PtrTo(t)
+	}
+	return withRLock(container, func() bool {
+		// 已实例化的 bean（RegisterBean）
+		for _, bean := range container.beanMap {
+			if reflect.TypeOf(bean).AssignableTo(typeValue) {
+				return true
+			}
+		}
+		// 原型/工厂定义（Provide/ProvideFunc）：Load 后实例入 beanMap，这里补 Load 前的查询
+		for _, def := range container.beanDefinitionMap {
+			if def.factory.IsValid() {
+				// 工厂 bean：Type 为返回指针类型，直接比较
+				if def.Type.AssignableTo(typeValue) {
+					return true
+				}
+			} else if reflect.PtrTo(def.Type).AssignableTo(typeValue) {
+				return true
+			}
+		}
+		return false
+	})
 }
 
 // NewBean 按类型创建一个新的 bean 实例（非容器单例）。

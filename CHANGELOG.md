@@ -2,6 +2,24 @@
 
 本项目遵循 [Semantic Versioning](https://semver.org/lang/zh-CN/)。
 
+## [0.6.2] - 2026-08-09
+
+配合 dio 9 个 Feature（状态机/健康检查/Bean 管理 API 等）的只读能力补充与顺序契约修复。
+
+### 新增（只读管理 API，无破坏性）
+
+- **`GetBeanNames()`**：按注册顺序返回所有 bean 名称（含工厂 bean），供统计/诊断
+- **`HasBeanType(beanType)`**：判断容器是否已注册指定类型的 bean（实例/原型/工厂均可，Load 前后均可用）
+- **`DescribeBean(name)` / `GetBeanDependencies(name)`**：返回 bean 定义的只读描述与依赖 bean 名称列表（新增 `BeanDescription`/`Dependency` 类型；仅原型/工厂 bean 有定义，直接注册的实例无定义信息）
+
+### 修复
+
+- **`GetByTypeAll`/`GetByType` 返回顺序与注册顺序不一致**：此前遍历 `beanMap`（map）取实例，返回顺序随机，与接口注释"按注册顺序返回"不符。现改为按注册顺序（`beanSort`）遍历；`GetByType` 返回第一个注册的匹配 bean。
+
+### 变更
+
+- go fix 现代化：`reflect.Ptr` → `reflect.Pointer`、`interface{}` → `any`、结构体字段对齐
+
 ## [0.6.1] - 2026-08-09
 
 与 v0.5.1 内容相同。单独发布是为了让 Go module proxy 的 `@latest` 回归正确轨道——

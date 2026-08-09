@@ -3,6 +3,7 @@ package di
 import (
 	"errors"
 	"reflect"
+	"strings"
 )
 
 // ErrCircularDependency 循环依赖
@@ -16,11 +17,12 @@ func (e *circularError) Error() string {
 	if len(e.chain) == 0 {
 		return ErrCircularDependency.Error()
 	}
-	chain := e.chain[0]
+	var chain strings.Builder
+	chain.WriteString(e.chain[0])
 	for i := 1; i < len(e.chain); i++ {
-		chain += " -> " + e.chain[i]
+		chain.WriteString(" -> " + e.chain[i])
 	}
-	return ErrCircularDependency.Error() + ": " + chain
+	return ErrCircularDependency.Error() + ": " + chain.String()
 }
 
 func (e *circularError) Unwrap() error {
