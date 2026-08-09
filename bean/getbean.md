@@ -12,10 +12,7 @@ GetBean
 | -------- | ------ | :-: |
 | beanName | string |  名称 |
 
-| 序号 | 类型          |    说明    |
-| -- | ----------- | :------: |
-| 0  | interface{} | 获取到的实例指针 |
-| 1  | bool        |  是否成功获取  |
+<table><thead><tr><th width="150">序号</th><th align="center">类型</th><th>说明</th></tr></thead><tbody><tr><td>0</td><td align="center">interface{}</td><td>获取到的实例指针</td></tr><tr><td>1</td><td align="center">bool</td><td>是否成功获取</td></tr></tbody></table>
 
 ```
 bean, ok := di.GetBean("service")
@@ -33,10 +30,7 @@ GetByType
 | -------- | ----------- | :--: |
 | beanType | interface{} | 实例类型 |
 
-| 序号 | 类型          |    说明    |
-| -- | ----------- | :------: |
-| 0  | interface{} | 获取到的实例指针 |
-| 1  | bool        |  是否成功获取  |
+<table><thead><tr><th width="150">序号</th><th align="center">类型</th><th>说明</th></tr></thead><tbody><tr><td>0</td><td align="center">interface{}</td><td>获取到的实例指针</td></tr><tr><td>1</td><td align="center">bool</td><td>是否成功获取</td></tr></tbody></table>
 
 ```
 bean, ok := di.GetByType(Service{})

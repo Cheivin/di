@@ -15,7 +15,7 @@
 * [构造函数注入（ProvideFunc）](bean/gou-zao-han-shu-zhu-ru-providefunc.md)
 * [批量注入（slice / map）](bean/pi-liang-zhu-ru-slice-map.md)
 * [接口选择策略（BeanSelector）](bean/jie-kou-xuan-ze-ce-le-beanselector.md)
-* [循环依赖检测](bean/xun-huan-yi-lai-jian-ce.md)
+* [循环依赖](bean/xun-huan-yi-lai.md)
 
 ## 标签 <a href="#tag" id="tag"></a>
 

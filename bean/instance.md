@@ -12,9 +12,7 @@ NewBeanByName
 | -------- | ------ | :-: |
 | beanName | string |  名称 |
 
-| 序号 | 类型          |    说明    |
-| -- | ----------- | :------: |
-| 0  | interface{} | 创建的新实例指针 |
+<table><thead><tr><th width="150">序号</th><th align="center">类型</th><th>说明</th></tr></thead><tbody><tr><td>0</td><td align="center">interface{}</td><td>创建的新实例指针</td></tr></tbody></table>
 
 ```
 bean := di.NewBeanByName("service")
@@ -29,9 +27,7 @@ NewBean
 | -------- | ----------- | :--: |
 | beanType | interface{} | 实例类型 |
 
-| 序号 | 类型          |    说明    |
-| -- | ----------- | :------: |
-| 0  | interface{} | 获取到的实例指针 |
+<table><thead><tr><th width="150">序号</th><th align="center">类型</th><th>说明</th></tr></thead><tbody><tr><td>0</td><td align="center">interface{}</td><td>获取到的实例指针</td></tr></tbody></table>
 
 ```
 bean := di.NewBean(Service{})
